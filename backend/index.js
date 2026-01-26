@@ -18,6 +18,10 @@ import teamRoutes from './routes/team.js';
 import settlementRoutes from './routes/settlement.js';
 import dashboardRoutes from './routes/dashboard.js';
 
+app.get('/', (req, res) => {
+    res.json({ message: "Ramalan Da'wa API is running" });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/seasons', seasonRoutes);
 app.use('/api/teams', teamRoutes);
