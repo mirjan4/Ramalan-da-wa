@@ -11,6 +11,7 @@ import Settlement from './pages/Settlement';
 import Reports from './pages/Reports';
 import Season from './pages/Season';
 import TeamsList from './pages/TeamsList';
+import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -53,6 +54,7 @@ function App() {
                                 <Route path="/assign-book" element={<AssignReceiptBook />} />
                                 <Route path="/collection" element={<CollectionEntry />} />
                                 <Route path="/reports" element={<Reports />} />
+                                <Route path="/settings" element={<Settings />} />
                             </Route>
                         </Routes>
                     </main>

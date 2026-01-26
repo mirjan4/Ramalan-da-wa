@@ -1,4 +1,4 @@
-import { User, Menu, RefreshCw } from 'lucide-react';
+import { User, Menu, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Navbar({ user, onMenuClick }) {
@@ -15,11 +15,11 @@ export default function Navbar({ user, onMenuClick }) {
             <div className="flex items-center gap-2 sm:gap-6">
                 <button
                     onClick={() => navigate('/season')}
-                    className="hidden sm:flex items-center gap-2 p-2 px-4 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all font-bold text-xs uppercase tracking-widest"
+                    className="flex items-center gap-2 p-2 px-3 sm:px-4 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all font-bold text-xs uppercase tracking-widest"
                     title="Change Season"
                 >
-                    <RefreshCw size={18} />
-                    <span>Season</span>
+                    <Calendar size={18} />
+                    <span className="hidden sm:inline">Season</span>
                 </button>
 
                 <div className="hidden sm:block h-8 w-[1px] bg-slate-100 mx-1"></div>

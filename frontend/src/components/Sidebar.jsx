@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, BookOpen, Banknote, Scale, FileText, LogOut, LayoutDashboard, Calendar, X } from 'lucide-react';
+import { Home, Users, BookOpen, Banknote, Scale, FileText, LogOut, LayoutDashboard, Calendar, X, Settings } from 'lucide-react';
 
 export default function Sidebar({ setUser, isOpen, onClose }) {
   const location = useLocation();
@@ -17,6 +17,7 @@ export default function Sidebar({ setUser, isOpen, onClose }) {
     { icon: <Users size={20} />, label: 'Team Management', path: '/teams' },
     { icon: <Scale size={20} />, label: 'Settlement & Collection', path: '/collection' },
     { icon: <FileText size={20} />, label: 'Reports', path: '/reports' },
+    { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
   ];
 
   return (
@@ -24,10 +25,10 @@ export default function Sidebar({ setUser, isOpen, onClose }) {
       <div className="flex items-center justify-between mb-12 px-2">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-500 rounded-xl shadow-lg ring-4 ring-indigo-500/20">
-            <Banknote className="text-white" size={24} />
+            <img className='w-12 h-12 bg-white rounded-full object-contain p-2 border-2 border-indigo-500 ' src="markaz-logo.png" alt="" />
           </div>
           <div>
-            <h2 className="font-black text-xl tracking-tight">Ramalan</h2>
+            <h2 className="font-black text-xl tracking-tight">Ramalan Da’wa</h2>
             <p className="text-[10px] uppercase tracking-widest text-indigo-400 font-bold -mt-1">Admin Portal</p>
           </div>
         </div>
