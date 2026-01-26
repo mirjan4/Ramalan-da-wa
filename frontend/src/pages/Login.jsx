@@ -34,7 +34,7 @@ export default function Login({ setUser }) {
             <LogIn size={32} />
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Admin Login</h1>
-          <p className="text-slate-500 mt-2 font-medium">Ramalan Da’wa Management System</p>
+          <p className="text-slate-500 mt-2 font-medium"> Markaz Ramalan Da’wa </p>
         </div>
 
         <div className="glass-card p-10 border-none bg-white">
@@ -85,7 +85,7 @@ export default function Login({ setUser }) {
         </div>
 
         <p className="mt-8 text-center text-slate-400 text-sm font-medium">
-          Office Use Only • Audit Safe System v1.0
+          Office Use Only v1.0
         </p>
       </div>
     </div>
