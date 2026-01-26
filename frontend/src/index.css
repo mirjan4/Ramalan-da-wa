@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary: #6366f1;
+    --color-primary-dark: #4f46e5;
+    --color-secondary: #0ea5e9;
+    --color-accent: #f59e0b;
+    --color-bg-dark: #0f172a;
+    --color-card-dark: #1e293b;
+    --color-success: #10b981;
+    --color-danger: #ef4444;
+}
+
+@layer base {
+    html {
+        font-size: 15px;
+    }
+
+    body {
+        background-color: #f8fafc;
+        color: #0f172a;
+        font-family: 'Outfit', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+    }
+
+    h1 {
+        @apply text-2xl font-extrabold;
+    }
+
+    h2 {
+        @apply text-xl font-bold;
+    }
+
+    h3 {
+        @apply text-lg font-bold;
+    }
+
+    .font-bold {
+        font-family: 'Outfit', sans-serif;
+    }
+
+    p,
+    span,
+    div,
+    table {
+        font-family: 'Inter', sans-serif;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply bg-white/80 backdrop-blur-md border border-slate-200 shadow-xl rounded-2xl;
+    }
+
+    .btn-primary {
+        @apply px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50;
+    }
+
+    .btn-secondary {
+        @apply px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-all duration-200;
+    }
+
+    .input-field {
+        @apply w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all;
+    }
+
+    .label {
+        @apply block text-sm font-medium text-slate-700 mb-1;
+    }
+
+    .stat-card {
+        @apply p-6 bg-white/80 backdrop-blur-md rounded-2xl border-none bg-gradient-to-br from-white to-slate-50 flex flex-col gap-1 shadow-xl;
+    }
+}
+
+/* PRODUCTION PRINT SYSTEM */
+@media print {
+    @page {
+        size: A4;
+        margin: 0;
+        /* Zero margin to block browser from injecting title/URL in header/footer */
+    }
+
+    /* Remove screen elements */
+    header,
+    aside,
+    nav,
+    footer,
+    .print-hidden,
+    button {
+        display: none !important;
+    }
+
+    html,
+    body {
+        width: 210mm;
+        height: auto !important;
+        /* Allow natural height for multipage content */
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        /* Ensure content can flow to next page */
+        background-color: white !important;
+        color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Simulate standard A4 padding for content protection */
+    main {
+        padding: 15mm !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Prevent breaking inside key sections */
+    section,
+    tr,
+    thead,
+    .mb-8,
+    .mb-10,
+    .mt-20 {
+        page-break-inside: avoid !important;
+    }
+
+    .glass-card {
+        box-shadow: none !important;
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+    }
+
+    /* Fixed typography for professional paper output */
+    body {
+        font-size: 11px !important;
+        /* Compact & Professional */
+        line-height: 1.4 !important;
+    }
+
+    h1 {
+        font-size: 18pt !important;
+        margin-bottom: 5pt !important;
+    }
+
+    h2 {
+        font-size: 14pt !important;
+        margin-top: 10pt !important;
+        margin-bottom: 5pt !important;
+    }
+
+    /* Enforce rigid borders for physical handovers */
+    table,
+    th,
+    td {
+        border: 1.5px solid black !important;
+        border-collapse: collapse !important;
+    }
+
+    th,
+    td {
+        padding: 6px !important;
+    }
+}
