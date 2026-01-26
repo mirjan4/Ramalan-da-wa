@@ -29,8 +29,21 @@ app.use('/api/settlements', settlementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // MongoDB Connection
+import Admin from './models/Admin.js';
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
+    .then(async () => {
+        console.log('Connected to MongoDB');
+        // Auto-seed admin if database is empty
+        const count = await Admin.countDocuments();
+        if (count === 0) {
+            const admin = new Admin({
+                username: process.env.ADMIN_USERNAME || 'admin',
+                password: process.env.ADMIN_PASSWORD || 'admin123',
+            });
+            await admin.save();
+            console.log('Default admin created: admin / admin123');
+        }
+    })
     .catch((err) => console.error('Could not connect to MongoDB', err));
 
 const PORT = process.env.PORT || 5000;
