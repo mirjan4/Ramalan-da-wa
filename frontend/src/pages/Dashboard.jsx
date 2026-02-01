@@ -165,7 +165,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <Users className="text-indigo-600" size={18} /> Team Collection Share
               </h2>
-              <div className="h-[350px] w-full flex flex-col">
+              <div className="h-[350px] w-full flex flex-col" style={{ minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="85%">
                   <PieChart>
                     <Pie
@@ -196,7 +196,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <Scale className="text-indigo-600" size={18} /> Collection vs Expense
               </h2>
-              <div className="h-[300px] w-full">
+              <div className="h-[300px] w-full" style={{ minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
