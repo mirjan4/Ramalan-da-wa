@@ -42,4 +42,20 @@ export const dashboardService = {
     getStats: (seasonId) => api.get('/dashboard/stats', { params: { seasonId } }),
 };
 
+export const userService = {
+    getAll: () => api.get('/auth/users'),
+    create: (data) => api.post('/auth/users', data),
+    delete: (id) => api.delete(`/auth/users/${id}`),
+    update: (id, userData) => api.put(`/auth/users/${id}`, userData),
+};
+
+export const fieldDataService = {
+    getAll: (seasonId) => api.get('/field-data', { params: { seasonId } }),
+    getById: (id) => api.get(`/field-data/${id}`),
+    create: (data) => api.post('/field-data', data),
+    update: (id, data) => api.put(`/field-data/${id}`, data),
+    delete: (id) => api.delete(`/field-data/${id}`),
+    lockBySeason: (seasonId, isLocked) => api.put(`/field-data/season/${seasonId}/lock`, { isLocked }),
+};
+
 export default api;

@@ -12,6 +12,8 @@ import Reports from './pages/Reports';
 import Season from './pages/Season';
 import TeamsList from './pages/TeamsList';
 import Settings from './pages/Settings';
+import FieldDataList from './pages/FieldDataList';
+import FieldDataForm from './pages/FieldDataForm';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -46,7 +48,7 @@ function App() {
                             <Route path="/login" element={user ? <Navigate to="/" /> : <Login setUser={setUser} />} />
 
                             <Route element={<ProtectedRoute user={user} />}>
-                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/" element={user?.role === 'data_collector' ? <Navigate to="/field-data" /> : <Dashboard />} />
                                 <Route path="/season" element={<Season />} />
                                 <Route path="/teams" element={<TeamsList />} />
                                 <Route path="/add-team" element={<AddTeam />} />
@@ -55,6 +57,9 @@ function App() {
                                 <Route path="/collection" element={<CollectionEntry />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/settings" element={<Settings />} />
+                                <Route path="/field-data" element={<FieldDataList />} />
+                                <Route path="/field-data/new" element={<FieldDataForm />} />
+                                <Route path="/field-data/edit/:id" element={<FieldDataForm />} />
                             </Route>
                         </Routes>
                     </main>

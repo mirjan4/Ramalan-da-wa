@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, BookOpen, Banknote, Scale, FileText, LogOut, LayoutDashboard, Calendar, X, Settings } from 'lucide-react';
+import { Home, Users, BookOpen, Banknote, Scale, FileText, LogOut, LayoutDashboard, Calendar, X, Settings, MapPin } from 'lucide-react';
 
 export default function Sidebar({ setUser, isOpen, onClose }) {
   const location = useLocation();
@@ -12,12 +12,18 @@ export default function Sidebar({ setUser, isOpen, onClose }) {
     navigate('/login');
   };
 
-  const navItems = [
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const role = currentUser.role || 'admin';
+
+  const navItems = role === 'admin' ? [
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/' },
     { icon: <Users size={20} />, label: 'Team Management', path: '/teams' },
     { icon: <Scale size={20} />, label: 'Settlement & Collection', path: '/collection' },
     { icon: <FileText size={20} />, label: 'Reports', path: '/reports' },
+    { icon: <MapPin size={20} />, label: 'Field Data', path: '/field-data' },
     { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
+  ] : [
+    { icon: <MapPin size={20} />, label: 'Field Data Entry', path: '/field-data' },
   ];
 
   return (

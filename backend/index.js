@@ -17,6 +17,7 @@ import seasonRoutes from './routes/season.js';
 import teamRoutes from './routes/team.js';
 import settlementRoutes from './routes/settlement.js';
 import dashboardRoutes from './routes/dashboard.js';
+import fieldDataRoutes from './routes/fieldData.js';
 
 app.get('/', (req, res) => {
     res.json({ message: "Ramalan Da'wa API is running" });
@@ -27,6 +28,7 @@ app.use('/api/seasons', seasonRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/field-data', fieldDataRoutes);
 
 // MongoDB Connection
 import Admin from './models/Admin.js';

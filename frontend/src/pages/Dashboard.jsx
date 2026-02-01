@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [activeSeason, setActiveSeason] = useState(null);
 
+
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
   useEffect(() => {
@@ -48,6 +49,29 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  // Use all teams data directly
+  const pieData = stats?.teams ? [...stats.teams].sort((a, b) => b.collection - a.collection) : [];
+
+  // Custom Scrollable Legend
+  const renderLegend = (props) => {
+    const { payload } = props;
+    return (
+      <div className="flex overflow-x-auto gap-4 pb-2 mt-4 px-2 w-full custom-scrollbar">
+        {payload.map((entry, index) => (
+          <div key={`item-${index}`} className="flex items-center gap-2 whitespace-nowrap min-w-fit">
+            <div
+              className="w-3 h-3 rounded-full shrink-0"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-xs font-semibold text-slate-600">
+              {entry.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -141,21 +165,20 @@ export default function Dashboard() {
               <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <Users className="text-indigo-600" size={18} /> Team Collection Share
               </h2>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[350px] w-full flex flex-col">
+                <ResponsiveContainer width="100%" height="85%">
                   <PieChart>
                     <Pie
-                      data={stats.teams || []}
+                      data={pieData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
+                      innerRadius="50%"
+                      outerRadius="80%"
+                      paddingAngle={2}
                       dataKey="collection"
                       nameKey="name"
-                      label
                     >
-                      {(stats.teams || []).map((entry, index) => (
+                      {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -163,7 +186,7 @@ export default function Dashboard() {
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                       formatter={(value) => `₹${value.toLocaleString()}`}
                     />
-                    <Legend verticalAlign="bottom" height={36} />
+                    <Legend content={renderLegend} verticalAlign="bottom" />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

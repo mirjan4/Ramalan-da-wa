@@ -33,7 +33,7 @@ export default function Login({ setUser }) {
           <div className="inline-flex p-4 rounded-3xl bg-indigo-600 text-white shadow-2xl mb-4 rotate-3 transform">
             <LogIn size={32} />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Admin Login</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight"> Login Page </h1>
           <p className="text-slate-500 mt-2 font-medium"> Markaz Ramalan Da’wa </p>
         </div>
 
@@ -85,7 +85,7 @@ export default function Login({ setUser }) {
         </div>
 
         <p className="mt-8 text-center text-slate-400 text-sm font-medium">
-          Office Use Only v1.0
+          Markaz Ramalan Da’wa
         </p>
       </div>
     </div>
