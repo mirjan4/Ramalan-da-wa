@@ -11,11 +11,13 @@ router.put('/:id/collection', async (req, res) => {
         if (team.isLocked) return res.status(403).json({ message: 'Team is locked' });
 
         team.receiptBooks = receiptBooks;
-        team.cashAmount = cashAmount;
+        team.cashAmount = Number(cashAmount) || 0;
         team.cashRef = cashRef || '';
-        team.bankAmount = bankAmount;
+        team.bankAmount = Number(bankAmount) || 0;
         team.bankRef = bankRef || '';
-        team.totalCollection = (Number(cashAmount) || 0) + (Number(bankAmount) || 0);
+
+        // totalCollection = Sum of all receipt book collections
+        team.totalCollection = receiptBooks.reduce((acc, book) => acc + (Number(book.collectedAmount) || 0), 0);
 
         await team.save();
         res.json(team);
@@ -31,8 +33,8 @@ router.put('/:id/finalize', async (req, res) => {
         const team = await Team.findById(req.params.id);
         if (team.isLocked) return res.status(403).json({ message: 'Team already settled' });
 
-        team.expense = expense;
-        team.balance = team.totalCollection - expense;
+        team.expense = Number(expense) || 0;
+        team.balance = team.totalCollection + (team.advanceAmount || 0) - team.expense;
         team.status = team.balance >= 0 ? 'SETTLED' : 'SHORTAGE';
 
         await team.save();
@@ -56,11 +58,13 @@ router.put('/:id/finalize-complete', async (req, res) => {
         team.cashRef = cashRef || '';
         team.bankAmount = Number(bankAmount) || 0;
         team.bankRef = bankRef || '';
-        team.totalCollection = team.cashAmount + team.bankAmount;
+
+        // totalCollection = Sum of all receipt book collections
+        team.totalCollection = receiptBooks.reduce((acc, book) => acc + (Number(book.collectedAmount) || 0), 0);
 
         // Update Expense Details
         team.expense = Number(expense) || 0;
-        team.balance = team.totalCollection - team.expense;
+        team.balance = team.totalCollection + (team.advanceAmount || 0) - team.expense;
         team.status = team.balance >= 0 ? 'SETTLED' : 'SHORTAGE';
 
         await team.save();

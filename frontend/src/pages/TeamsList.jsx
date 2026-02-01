@@ -9,7 +9,6 @@ export default function TeamsList() {
     const [selectedSeason, setSelectedSeason] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
-    const [expandedTeams, setExpandedTeams] = useState({});
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -47,13 +46,6 @@ export default function TeamsList() {
         fetchTeams(id);
     };
 
-    const toggleSection = (teamId, section) => {
-        setExpandedTeams(prev => ({
-            ...prev,
-            [teamId]: prev[teamId] === section ? null : section
-        }));
-    };
-
     const filteredTeams = teams.filter(team =>
         team.placeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         team.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -84,6 +76,12 @@ export default function TeamsList() {
                         />
                     </div>
                     <Link
+                        to="/team-tools"
+                        className="btn-secondary flex items-center gap-2 mr-2"
+                    >
+                        <Settings2 size={18} /> Import / Export
+                    </Link>
+                    <Link
                         to="/add-team"
                         className="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
                     >
@@ -100,7 +98,7 @@ export default function TeamsList() {
                 ) : filteredTeams.map((team) => (
                     <div key={team._id} className="glass-card p-6 border-none bg-white hover:shadow-2xl transition-all duration-300 group flex flex-col h-fit">
                         {/* Header with Icon Buttons */}
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start mb-4">
                             <div className="flex-1 min-w-0 pr-4">
                                 <div className="flex items-center gap-1.5 text-indigo-600 mb-0.5 opacity-80">
                                     <MapPin size={12} />
@@ -109,65 +107,59 @@ export default function TeamsList() {
                                 <h3 className="text-lg font-bold text-slate-900 leading-tight truncate">{team.placeName}</h3>
                             </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => toggleSection(team._id, 'members')}
-                                    title="View Members / Master Data"
-                                    className={`p-2 rounded-xl border transition-all ${expandedTeams[team._id] === 'members' ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-slate-50 text-slate-400 border-slate-100 hover:text-indigo-600 hover:bg-white hover:border-indigo-100'}`}
-                                >
-                                    <Settings2 size={18} />
-                                </button>
-                                <button
-                                    onClick={() => toggleSection(team._id, 'books')}
-                                    title="View / Assign Books"
-                                    className={`p-2 rounded-xl border transition-all ${expandedTeams[team._id] === 'books' ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-slate-50 text-slate-400 border-slate-100 hover:text-indigo-600 hover:bg-white hover:border-indigo-100'}`}
-                                >
-                                    <PlusCircle size={18} />
-                                </button>
+                            <button
+                                onClick={() => navigate(`/edit-team/${team._id}`)}
+                                className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                                title="Edit Team"
+                            >
+                                <Edit3 size={18} />
+                            </button>
+                        </div>
+
+                        {/* Members Section */}
+                        <div className="space-y-3 mb-4">
+                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <Users size={12} /> Members ({team.members.length})
+                            </div>
+                            <div className="space-y-2">
+                                {team.members.map((m, i) => (
+                                    <div key={i} className="flex justify-between items-center text-xs px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 font-bold text-slate-700 group-hover:border-indigo-50 transition-colors">
+                                        <div className="flex flex-col">
+                                            <span>{m.name}</span>
+                                            <span className="text-[9px] font-normal text-slate-400">{m.phone}</span>
+                                        </div>
+                                        <span className="px-1.5 py-0.5 bg-white rounded border border-slate-200 text-[9px] uppercase tracking-tighter text-slate-500">
+                                            {m.class || 'N/A'}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
-                        {/* Collapsible Content */}
-                        <div className="overflow-hidden transition-all">
-                            {expandedTeams[team._id] === 'members' && (
-                                <div className="mt-4 pt-4 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Team Members</div>
-                                        <button
-                                            onClick={() => navigate(`/edit-team/${team._id}`)}
-                                            className="text-[10px] font-black uppercase text-indigo-600 hover:underline flex items-center gap-1"
-                                        >
-                                            Edit All <ArrowUpRight size={12} />
-                                        </button>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        {team.members.map((m, i) => (
-                                            <div key={i} className="flex justify-between items-center text-xs px-2.5 py-2 bg-slate-50 rounded-lg border border-slate-100 font-bold text-slate-700">
-                                                {m.name} <span className="opacity-40 text-[9px] uppercase tracking-tighter">CL {m.class}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                        {/* Books Section */}
+                        {/* Books Section */}
+                        <div
+                            onClick={() => navigate(`/assign-book?teamId=${team._id}`)}
+                            className="pt-4 border-t border-slate-50 mt-auto cursor-pointer group/books hover:bg-indigo-50/30 -mx-6 px-6 -mb-6 pb-6 transition-all"
+                            title="Manage Receipt Books"
+                        >
+                            <div className="flex justify-between items-center mb-2 mt-2">
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 group-hover/books:text-indigo-600 transition-colors">
+                                    <BookOpen size={12} /> Receipt Books
                                 </div>
-                            )}
-
-                            {expandedTeams[team._id] === 'books' && (
-                                <div className="mt-4 pt-4 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receipt Books</div>
-                                        <button
-                                            onClick={() => navigate(`/assign-book?teamId=${team._id}`)}
-                                            className="text-[10px] font-black uppercase text-indigo-600 hover:underline flex items-center gap-1"
-                                        >
-                                            Manage <ArrowUpRight size={12} />
-                                        </button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {team.receiptBooks.length > 0 ? team.receiptBooks.map((b, i) => (
-                                            <span key={i} className="px-2.5 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-black text-indigo-700">{b.bookNumber}</span>
-                                        )) : <span className="text-[10px] text-slate-400 italic">No books assigned</span>}
-                                    </div>
-                                </div>
-                            )}
+                                <ArrowUpRight size={14} className="text-slate-300 group-hover/books:text-indigo-600 opacity-0 group-hover/books:opacity-100 transition-all transform group-hover/books:translate-x-1" />
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {team.receiptBooks && team.receiptBooks.length > 0 ? (
+                                    team.receiptBooks.map((b, i) => (
+                                        <span key={i} className="px-2 py-1 bg-white border border-slate-200 group-hover/books:border-indigo-200 rounded text-[10px] font-bold text-slate-600 group-hover/books:text-indigo-700 transition-colors">
+                                            {b.bookNumber}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-[10px] text-slate-400 italic bg-slate-50 px-2 py-1 rounded border border-transparent group-hover/books:border-indigo-100 group-hover/books:bg-white transition-colors">Assign Books</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}

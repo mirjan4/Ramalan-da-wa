@@ -6,6 +6,7 @@ const adminSchema = new mongoose.Schema({
     password: { type: String, required: true },
     displayName: { type: String, default: '' },
     role: { type: String, enum: ['admin', 'data_collector'], default: 'admin' },
+    forcePasswordChange: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Hash password before saving

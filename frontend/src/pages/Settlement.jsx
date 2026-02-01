@@ -22,7 +22,7 @@ export default function Settlement() {
     }
   }, [selectedTeamId]);
 
-  const balance = (team?.totalCollection || 0) - Number(expense);
+  const balance = (team?.totalCollection || 0) + (team?.advanceAmount || 0) - Number(expense);
   const status = balance >= 0 ? 'SETTLED' : 'SHORTAGE';
 
   const handleFinalize = async () => {
@@ -62,14 +62,15 @@ export default function Settlement() {
               <span className="text-2xl font-black text-indigo-900">₹{team.totalCollection.toLocaleString()}</span>
             </div>
             <div className="glass-card p-6 border-none bg-slate-50">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Payment Mode</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Financial Data</span>
               <div className="text-sm font-medium text-slate-600">
+                Advance: ₹{(team.advanceAmount || 0).toLocaleString()}<br />
                 Cash: ₹{team.cashAmount.toLocaleString()}<br />
                 Bank: ₹{team.bankAmount.toLocaleString()}
               </div>
             </div>
             <div className="glass-card p-6 border-none bg-white shadow-sm ring-1 ring-slate-100">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1 hover:text-indigo-500 transition-colors cursor-default">Status Forecast</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Status Forecast</span>
               <span className={`text-xl font-bold ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {status}
               </span>

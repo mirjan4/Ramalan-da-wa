@@ -78,6 +78,7 @@ export default function Reports() {
             { header: 'Class', key: 'class', width: 15 },
             { header: 'Phone', key: 'phone', width: 20 },
             { header: 'Total Collection', key: 'total', width: 20 },
+            { header: 'Advance', key: 'advance', width: 15 },
             { header: 'Expense', key: 'expense', width: 15 },
             { header: 'Balance', key: 'balance', width: 15 },
             { header: 'Status', key: 'status', width: 15 },
@@ -103,6 +104,7 @@ export default function Reports() {
                     class: member.class,
                     phone: member.phone,
                     total: team.totalCollection,
+                    advance: team.advanceAmount || 0,
                     expense: team.expense,
                     balance: team.balance,
                     status: team.status,
@@ -114,7 +116,7 @@ export default function Reports() {
 
             // Merge cells for team details
             if (endRow >= startRow) {
-                ['A', 'B', 'F', 'G', 'H', 'I'].forEach((col) => {
+                ['A', 'B', 'F', 'G', 'H', 'I', 'J'].forEach((col) => {
                     worksheet.mergeCells(`${col}${startRow}:${col}${endRow}`);
                     // Center aligned for merged cells
                     worksheet.getCell(`${col}${startRow}`).alignment = { vertical: 'middle', horizontal: 'center' };
@@ -199,6 +201,7 @@ export default function Reports() {
                                         </span>
                                     </div>
                                 </th>
+                                <th className="px-6 py-5 text-center cursor-default">Advance</th>
                                 <th className="px-6 py-5 text-center cursor-default">Expense</th>
                                 <th className="px-6 py-5 text-center cursor-default">Balance</th>
                                 <th className="px-6 py-5 text-center cursor-default">Status</th>
@@ -229,6 +232,9 @@ export default function Reports() {
                                     </td>
                                     <td className="px-6 py-4 text-center font-black text-slate-900">
                                         ₹{team.totalCollection.toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4 text-center font-bold text-indigo-600">
+                                        ₹{(team.advanceAmount || 0).toLocaleString()}
                                     </td>
                                     <td className="px-6 py-4 text-center font-bold text-rose-500">
                                         ₹{(team.expense || 0).toLocaleString()}

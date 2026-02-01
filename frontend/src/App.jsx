@@ -11,6 +11,7 @@ import Settlement from './pages/Settlement';
 import Reports from './pages/Reports';
 import Season from './pages/Season';
 import TeamsList from './pages/TeamsList';
+import TeamTools from './pages/TeamTools';
 import Settings from './pages/Settings';
 import FieldDataList from './pages/FieldDataList';
 import FieldDataForm from './pages/FieldDataForm';
@@ -51,6 +52,7 @@ function App() {
                                 <Route path="/" element={user?.role === 'data_collector' ? <Navigate to="/field-data" /> : <Dashboard />} />
                                 <Route path="/season" element={<Season />} />
                                 <Route path="/teams" element={<TeamsList />} />
+                                <Route path="/team-tools" element={<TeamTools />} />
                                 <Route path="/add-team" element={<AddTeam />} />
                                 <Route path="/edit-team/:id" element={<AddTeam />} />
                                 <Route path="/assign-book" element={<AssignReceiptBook />} />

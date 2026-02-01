@@ -18,7 +18,12 @@ export default function Login({ setUser }) {
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.admin));
       setUser(res.data.admin);
-      navigate('/');
+
+      if (res.data.admin.forcePasswordChange) {
+        navigate('/settings');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError('Invalid username or password');
     } finally {

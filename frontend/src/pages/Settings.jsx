@@ -32,11 +32,14 @@ export default function Settings() {
     const [editingUserId, setEditingUserId] = useState(null);
 
     useEffect(() => {
-        if (activeTab === 'users' && isAdmin) {
+        if (currentUser.forcePasswordChange) {
+            setActiveTab('security');
+            // Allow user to see what's happening via message, but prevent navigation
+        } else if (activeTab === 'users' && isAdmin) {
             fetchUsers();
             fetchTeams();
         }
-    }, [activeTab, isAdmin]);
+    }, [activeTab, isAdmin, currentUser.forcePasswordChange]);
 
     const fetchUsers = async () => {
         try {
@@ -65,11 +68,13 @@ export default function Settings() {
             const prefix = name.substring(0, 4).toLowerCase();
             const formattedPrefix = prefix.charAt(0).toUpperCase() + prefix.slice(1);
             const autoUsername = `${formattedPrefix}123`;
+            const autoPassword = autoUsername.substring(0, 2).toLowerCase() + '01';
 
             setNewUser(prev => ({
                 ...prev,
                 displayName: team.placeName,
-                username: autoUsername
+                username: autoUsername,
+                password: autoPassword
             }));
         } else {
             setNewUser(prev => ({ ...prev, displayName: '', username: '' }));
@@ -85,13 +90,21 @@ export default function Settings() {
                 await userService.update(editingUserId, newUser);
                 setMessage({ type: 'success', text: 'User updated successfully!' });
                 setEditingUserId(null);
+                setNewUser({ username: '', password: '', displayName: '' });
             } else {
                 // Create new user
                 await userService.create(newUser);
-                setMessage({ type: 'success', text: 'Team user created successfully!' });
+                // Show credentials only once
+                setMessage({
+                    type: 'success',
+                    text: `User created! Username: ${newUser.username}, Password: ${newUser.password}`
+                });
+                // Note: We don't clear newUser immediately if we want to show it? 
+                // Actually user might want to copy.
+                // But the message box handles it.
+                setNewUser({ username: '', password: '', displayName: '' });
             }
 
-            setNewUser({ username: '', password: '', displayName: '' });
             setSelectedTeam('');
             fetchUsers();
         } catch (err) {
@@ -182,6 +195,14 @@ export default function Settings() {
             if (response.data) {
                 setMessage({ type: 'success', text: 'Password changed successfully!' });
                 setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+                // update local storage to remove force flag
+                const updatedUser = { ...currentUser, forcePasswordChange: false };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+
+                // verification message
+                alert("Password updated successfully. Please continue.");
+                window.location.href = '/'; // Reload to clear forced state
             }
         } catch (error) {
             setMessage({
@@ -207,16 +228,18 @@ export default function Settings() {
 
             {/* Tab Navigation */}
             <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200">
-                <button
-                    onClick={() => setActiveTab('profile')}
-                    className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'profile'
-                        ? 'text-indigo-600 border-b-2 border-indigo-600'
-                        : 'text-slate-400 hover:text-slate-600'
-                        }`}
-                >
-                    <User size={16} className="inline mr-2" />
-                    Profile
-                </button>
+                {!currentUser.forcePasswordChange && (
+                    <button
+                        onClick={() => setActiveTab('profile')}
+                        className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'profile'
+                            ? 'text-indigo-600 border-b-2 border-indigo-600'
+                            : 'text-slate-400 hover:text-slate-600'
+                            }`}
+                    >
+                        <User size={16} className="inline mr-2" />
+                        Profile
+                    </button>
+                )}
                 <button
                     onClick={() => setActiveTab('security')}
                     className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'security'
@@ -227,7 +250,7 @@ export default function Settings() {
                     <Lock size={16} className="inline mr-2" />
                     Security
                 </button>
-                {isAdmin && (
+                {!currentUser.forcePasswordChange && isAdmin && (
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'users'
@@ -240,6 +263,13 @@ export default function Settings() {
                     </button>
                 )}
             </div>
+
+            {currentUser.forcePasswordChange && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl flex items-center gap-3">
+                    <AlertCircle size={20} />
+                    <span className="font-bold">Security Alert: You must change your password immediately to continue.</span>
+                </div>
+            )}
 
             {/* Message Alert */}
             {message.text && (
@@ -388,7 +418,7 @@ export default function Settings() {
                             <div>
                                 <label className="label">Password {editingUserId && '(Leave blank to keep current)'}</label>
                                 <input
-                                    type="password"
+                                    type={editingUserId ? "password" : "text"}
                                     required={!editingUserId}
                                     className="input-field"
                                     placeholder="******"

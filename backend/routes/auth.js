@@ -24,7 +24,8 @@ router.post('/login', async (req, res) => {
             admin: {
                 username: admin.username,
                 displayName: admin.displayName,
-                role: admin.role
+                role: admin.role,
+                forcePasswordChange: admin.forcePasswordChange
             }
         });
     } catch (err) {
@@ -114,6 +115,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
         }
 
         admin.password = newPassword;
+        admin.forcePasswordChange = false;
         await admin.save();
 
         res.json({ message: 'Password changed successfully' });
@@ -164,7 +166,8 @@ router.post('/users', authenticateToken, async (req, res) => {
             username,
             password,
             displayName: displayName || '',
-            role: role || 'data_collector'
+            role: role || 'data_collector',
+            forcePasswordChange: true // Force password change for new users
         });
 
         await newUser.save();

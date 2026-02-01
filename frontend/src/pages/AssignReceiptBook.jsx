@@ -1,23 +1,39 @@
 import { useState, useEffect } from 'react';
-import { teamService } from '../services/api';
+import { teamService, seasonService } from '../services/api';
 import TeamSelect from '../components/TeamSelect';
-import { BookPlus, Trash2, Plus, Save } from 'lucide-react';
+import { BookPlus, Trash2, Plus, Save, AlertCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function AssignReceiptBook() {
   const [searchParams] = useSearchParams();
   const [selectedTeamId, setSelectedTeamId] = useState(searchParams.get('teamId') || '');
   const [receiptBooks, setReceiptBooks] = useState([{ bookNumber: '', startPage: '', endPage: '' }]);
+  const [usedBooks, setUsedBooks] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (selectedTeamId) {
+      // Fetch Team Data
       teamService.getById(selectedTeamId).then(res => {
         if (res.data.receiptBooks && res.data.receiptBooks.length > 0) {
           setReceiptBooks(res.data.receiptBooks);
         } else {
           setReceiptBooks([{ bookNumber: '', startPage: '', endPage: '' }]);
+        }
+      });
+
+      // Fetch Used Books from other teams
+      seasonService.getActive().then(async (res) => {
+        if (res.data) {
+          const allTeamsRes = await teamService.getAll(res.data._id);
+          const occupied = new Set();
+          allTeamsRes.data.forEach(t => {
+            if (t._id !== selectedTeamId) {
+              t.receiptBooks.forEach(b => occupied.add(String(b.bookNumber)));
+            }
+          });
+          setUsedBooks(occupied);
         }
       });
     }
@@ -51,6 +67,10 @@ export default function AssignReceiptBook() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedTeamId) return alert('Select a team');
+
+    const hasConflicts = receiptBooks.some(b => usedBooks.has(String(b.bookNumber)));
+    if (hasConflicts) return alert('Please remove or correct conflicting book numbers marked in red.');
+
     setLoading(true);
     try {
       await teamService.assignBooks(selectedTeamId, receiptBooks);
@@ -92,15 +112,23 @@ export default function AssignReceiptBook() {
                 <div key={idx} className="p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-4 relative">
                   <div className="flex-1">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Book Number</label>
-                    <input
-                      required
-                      type="number"
-                      min="1"
-                      className="input-field"
-                      placeholder="e.g. 1"
-                      value={book.bookNumber}
-                      onChange={e => updateBook(idx, 'bookNumber', e.target.value)}
-                    />
+                    <div className="relative">
+                      <input
+                        required
+                        type="number"
+                        min="1"
+                        className={`input-field ${usedBooks.has(String(book.bookNumber)) ? 'border-rose-500 focus:ring-rose-200 text-rose-600' : ''}`}
+                        placeholder="e.g. 1"
+                        value={book.bookNumber}
+                        onChange={e => updateBook(idx, 'bookNumber', e.target.value)}
+                      />
+                      {usedBooks.has(String(book.bookNumber)) && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500 flex items-center gap-1 bg-white pl-2">
+                          <AlertCircle size={16} />
+                          <span className="text-xs font-bold">Assigned</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Start Page</label>
