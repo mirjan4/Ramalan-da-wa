@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { seasonService } from '../services/api';
 import { Plus, CheckCircle, Circle } from 'lucide-react';
+import { confirmAction } from '../utils/swal';
 
 export default function Season() {
     const [seasons, setSeasons] = useState([]);
@@ -35,12 +36,21 @@ export default function Season() {
         }
     };
 
-    const handleActivate = async (id) => {
-        try {
-            await seasonService.activate(id);
-            fetchSeasons();
-        } catch (err) {
-            console.error(err);
+    const handleActivate = async (id, seasonName) => {
+        const confirmed = await confirmAction({
+            title: "Activate Season?",
+            text: `Are you sure you want to activate "${seasonName}"? This will deactivate the current active season.`,
+            confirmText: "Activate Now",
+            variant: "info"
+        });
+
+        if (confirmed) {
+            try {
+                await seasonService.activate(id);
+                fetchInitialData ? fetchInitialData() : fetchSeasons();
+            } catch (err) {
+                console.error(err);
+            }
         }
     };
 
@@ -80,7 +90,7 @@ export default function Season() {
                                 <CheckCircle size={18} /> Active Season
                             </span>
                         ) : (
-                            <button onClick={() => handleActivate(season._id)} className="btn-secondary flex items-center gap-2 hover:bg-slate-100">
+                            <button onClick={() => handleActivate(season._id, season.name)} className="btn-secondary flex items-center gap-2 hover:bg-slate-100">
                                 <Circle size={18} /> Set as Active
                             </button>
                         )}

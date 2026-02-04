@@ -1,15 +1,26 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Users, BookOpen, Banknote, Scale, FileText, LogOut, LayoutDashboard, Calendar, X, Settings, MapPin } from 'lucide-react';
+import { confirmAction } from '../utils/swal';
 
 export default function Sidebar({ setUser, isOpen, onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    navigate('/login');
+  const handleLogout = async () => {
+    const confirmed = await confirmAction({
+      title: 'Logout?',
+      text: 'Are you sure you want to end your session?',
+      confirmText: 'Yes, Sign Out',
+      variant: 'warning'
+    });
+
+    if (confirmed) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      navigate('/login');
+      onClose();
+    }
   };
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');

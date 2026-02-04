@@ -25,4 +25,4 @@ const fieldDataSchema = new mongoose.Schema({
 fieldDataSchema.index({ season: 1, createdBy: 1 });
 fieldDataSchema.index({ masjidName: 'text', place: 'text' });
 
-export default mongoose.model('FieldData', fieldDataSchema);
+export default mongoose.models.FieldData || mongoose.model('FieldData', fieldDataSchema);

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { teamService, settlementService } from '../services/api';
 import TeamSelect from '../components/TeamSelect';
-import { Calculator, Save, AlertCircle, Scale, Printer } from 'lucide-react';
+import { Calculator, Save, AlertCircle, Scale, Printer, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { MySwal } from '../utils/swal';
 
 export default function CollectionEntry() {
   const [searchParams] = useSearchParams();
@@ -56,7 +57,28 @@ export default function CollectionEntry() {
     setReceiptBooks(updated);
   };
 
+  const removeBookRow = async (index, bookNumber) => {
+    const book = receiptBooks[index];
+    if (Number(book.collectedAmount) > 0) {
+      return MySwal.fire('Cannot Remove', 'This book has a recorded collection amount. Clear the amount first if you wish to unassign it.', 'warning');
+    }
+
+    const confirmed = await MySwal.fire({
+      title: `Unassign Book #${bookNumber}?`,
+      text: "This will remove the book from this team's temporary settlement list. You must click 'Save & Update' to permanently unassign it.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, remove',
+      cancelButtonText: 'Keep it'
+    });
+
+    if (confirmed.isConfirmed) {
+      setReceiptBooks(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const totalCalculated = receiptBooks.reduce((acc, book) => acc + (Number(book.collectedAmount) || 0), 0);
+  const suggestedExpense = Math.round(totalCalculated * 0.25);
   const breakupTotal = Number(cashAmount) + Number(bankAmount);
   const balance = totalCalculated + Number(advanceAmount) - Number(expense);
   const isBalanced = breakupTotal === balance;
@@ -69,7 +91,11 @@ export default function CollectionEntry() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isBalanced) return alert('Cash + Bank breakup must equal the Final Net Balance');
+    if (!isBalanced) return MySwal.fire({
+      title: 'Balance Mismatch',
+      text: 'Final Net Balance must equal Cash + Bank total.',
+      icon: 'warning'
+    });
 
     setLoading(true);
     try {
@@ -81,11 +107,17 @@ export default function CollectionEntry() {
         bankRef,
         expense: Number(expense)
       });
-      alert('Settlement saved successfully');
+      await MySwal.fire({
+        title: 'Settlement Saved!',
+        text: 'The team records have been updated and synchronized.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
       navigate('/reports');
     } catch (err) {
       console.error(err);
-      alert('Error saving settlement: ' + err.message);
+      MySwal.fire('Error', 'Failed to save settlement: ' + err.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -142,6 +174,7 @@ export default function CollectionEntry() {
                       <th className="pb-4">Used End</th>
                       <th className="pb-4">Used Pages</th>
                       <th className="pb-4">Amount (₹)</th>
+                      <th className="pb-4 text-center print:hidden">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -179,6 +212,16 @@ export default function CollectionEntry() {
                             value={book.collectedAmount || ''}
                             onChange={e => updateBookEntry(idx, 'collectedAmount', e.target.value)}
                           />
+                        </td>
+                        <td className="py-4 text-center print:hidden">
+                          <button
+                            type="button"
+                            onClick={() => removeBookRow(idx, book.bookNumber)}
+                            className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                            title="Unassign Book"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -274,7 +317,16 @@ export default function CollectionEntry() {
                       value={expense}
                       onChange={e => handleExpenseChange(e.target.value)}
                     />
-                    <p className="text-[10px] text-slate-500 mt-2 italic">Suggested: 25% of total collection</p>
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="text-[10px] text-slate-500 italic">Suggested: ₹{suggestedExpense.toLocaleString()} (25%)</p>
+                      <button
+                        type="button"
+                        onClick={() => setExpense(suggestedExpense)}
+                        className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest"
+                      >
+                        Apply Suggestion
+                      </button>
+                    </div>
                   </div>
 
                   <div className="pt-4 border-t border-white/10 flex justify-between items-end">

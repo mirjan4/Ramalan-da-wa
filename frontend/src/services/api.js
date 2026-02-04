@@ -30,6 +30,7 @@ export const teamService = {
     create: (data) => api.post('/teams', data),
     update: (id, data) => api.put(`/teams/${id}`, data),
     assignBooks: (id, receiptBooks) => api.put(`/teams/${id}/assign-books`, { receiptBooks }),
+    delete: (id) => api.delete(`/teams/${id}`),
 };
 
 export const settlementService = {

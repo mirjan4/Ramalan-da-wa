@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fieldDataService, seasonService } from '../services/api';
 import { MapPin, Save, User, Building2, FileText, ArrowLeft, Globe, Loader2 } from 'lucide-react';
+import { MySwal } from '../utils/swal';
 
 export default function FieldDataForm() {
     const { id } = useParams();
@@ -54,7 +55,7 @@ export default function FieldDataForm() {
 
     const handleGetLocation = () => {
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
+            MySwal.fire('Not Supported', 'Geolocation is not supported by your browser.', 'error');
             return;
         }
 
@@ -72,7 +73,7 @@ export default function FieldDataForm() {
                 setFetchingLocation(false);
             },
             (error) => {
-                alert("Unable to retrieve your location");
+                MySwal.fire('GPS Error', 'Unable to retrieve your location. Please check permissions.', 'error');
                 setFetchingLocation(false);
             }
         );
@@ -90,8 +91,22 @@ export default function FieldDataForm() {
 
             if (isEditMode) {
                 await fieldDataService.update(id, payload);
+                await MySwal.fire({
+                    title: 'Updated!',
+                    text: 'Field data has been successfully updated.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             } else {
                 await fieldDataService.create(payload);
+                await MySwal.fire({
+                    title: 'Saved!',
+                    text: 'Field data entry has been successfully recorded.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             }
             navigate('/field-data');
         } catch (err) {

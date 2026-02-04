@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { teamService, seasonService } from '../services/api';
 import { Download, Upload, FileSpreadsheet, ArrowLeft, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MySwal } from '../utils/swal';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 export default function TeamTools() {
     const [activeSeason, setActiveSeason] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState({ type: '', text: '' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -101,10 +101,15 @@ export default function TeamTools() {
 
             const buffer = await workbook.xlsx.writeBuffer();
             saveAs(new Blob([buffer]), `Ramalan_Teams_${activeSeason.name.replace(/\s+/g, '_')}.xlsx`);
-            setMessage({ type: 'success', text: 'Excel export successful!' });
+            MySwal.fire({
+                title: 'Exported!',
+                text: 'Teams data has been downloaded as an Excel file.',
+                icon: 'success',
+                timer: 2000
+            });
         } catch (err) {
             console.error(err);
-            setMessage({ type: 'error', text: 'Export failed.' });
+            MySwal.fire('Error', 'Failed to generate Excel export.', 'error');
         } finally {
             setLoading(false);
         }
@@ -153,7 +158,7 @@ export default function TeamTools() {
         if (!file) return;
 
         if (!activeSeason) {
-            setMessage({ type: 'error', text: 'No active season found for import.' });
+            MySwal.fire('No Active Season', 'Please activate a season before importing teams.', 'warning');
             return;
         }
 
@@ -264,14 +269,16 @@ export default function TeamTools() {
                 }
             }
 
-            setMessage({
-                type: 'success',
-                text: `Import complete! Processed ${teamsMap.length} groups. Success: ${successCount}.`
+            await MySwal.fire({
+                title: 'Import Complete',
+                text: `Processed ${teamsMap.length} groups. Successfully imported ${successCount} teams.`,
+                icon: errorCount > 0 ? 'warning' : 'success',
+                confirmButtonText: 'Great'
             });
 
         } catch (err) {
             console.error("Import error", err);
-            setMessage({ type: 'error', text: 'Failed to process Excel file. Please check format.' });
+            MySwal.fire('Import Failed', 'Failed to process Excel file. Please check the template format.', 'error');
         } finally {
             setLoading(false);
             e.target.value = null;
@@ -297,15 +304,6 @@ export default function TeamTools() {
                 </div>
             </div>
 
-            {message.text && (
-                <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${message.type === 'success'
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-                    : 'bg-rose-50 border border-rose-200 text-rose-700'
-                    }`}>
-                    {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                    <span className="font-semibold text-sm">{message.text}</span>
-                </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Export Section */}

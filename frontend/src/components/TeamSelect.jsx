@@ -11,7 +11,10 @@ export default function TeamSelect({ onSelect, selectedId, filterLocked = false 
         const seasonRes = await seasonService.getActive();
         if (seasonRes.data) {
           const teamsRes = await teamService.getAll(seasonRes.data._id);
-          let filteredTeams = teamsRes.data;
+          let filteredTeams = teamsRes.data.sort((a, b) => {
+            if (a.isLocked === b.isLocked) return a.placeName.localeCompare(b.placeName);
+            return a.isLocked ? 1 : -1; // Pending first
+          });
           if (filterLocked) {
             filteredTeams = filteredTeams.filter(t => !t.isLocked);
           }
@@ -37,8 +40,12 @@ export default function TeamSelect({ onSelect, selectedId, filterLocked = false 
       >
         <option value="">-- Choose a Team --</option>
         {teams.map((team) => (
-          <option key={team._id} value={team._id}>
-            {team.placeName} ({team.state})
+          <option
+            key={team._id}
+            value={team._id}
+            className={team.isLocked ? 'text-slate-400 italic' : 'font-bold'}
+          >
+            {team.isLocked ? '🔒' : '🕒'} {team.placeName} ({team.state}) {team.isLocked ? '' : ' '}
           </option>
         ))}
       </select>

@@ -5,4 +5,4 @@ const seasonSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: false },
 }, { timestamps: true });
 
-export default mongoose.model('Season', seasonSchema);
+export default mongoose.models.Season || mongoose.model('Season', seasonSchema);

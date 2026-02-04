@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fieldDataService, seasonService } from '../services/api';
-import { MapPin, Plus, Search, FileText, Lock, Globe, Phone, User, ExternalLink } from 'lucide-react';
+import { MapPin, Plus, Search, FileText, Lock, Globe, Phone, User, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { confirmDelete, confirmAction } from '../utils/swal';
 
 export default function FieldDataList() {
     const [fieldData, setFieldData] = useState([]);
@@ -35,13 +36,37 @@ export default function FieldDataList() {
     };
 
     const handleLockSeason = async (isLocked) => {
-        if (!activeSeason || !confirm(`Are you sure you want to ${isLocked ? 'LOCK' : 'UNLOCK'} all field data for this season?`)) return;
+        const confirmed = await confirmAction({
+            title: isLocked ? "Lock Season Data?" : "Unlock Season Data?",
+            text: `Are you sure you want to ${isLocked ? 'LOCK' : 'UNLOCK'} all field data for this season? This affects editing capabilities for all members.`,
+            confirmText: isLocked ? "Lock All" : "Unlock All",
+            variant: isLocked ? "warning" : "info"
+        });
 
-        try {
-            await fieldDataService.lockBySeason(activeSeason._id, isLocked);
-            fetchInitialData(); // Refresh to see lock status
-        } catch (err) {
-            alert('Failed to update lock status');
+        if (confirmed) {
+            try {
+                await fieldDataService.lockBySeason(activeSeason._id, isLocked);
+                fetchInitialData();
+            } catch (err) {
+                alert('Failed to update lock status');
+            }
+        }
+    };
+
+    const handleDeleteClick = async (e, id) => {
+        e.stopPropagation();
+        const confirmed = await confirmDelete(
+            "Delete Entry?",
+            "This will permanently remove this field collection record. This action cannot be undone."
+        );
+
+        if (confirmed) {
+            try {
+                await fieldDataService.delete(id);
+                setFieldData(prev => prev.filter(item => item._id !== id));
+            } catch (err) {
+                alert('Failed to delete entry');
+            }
         }
     };
 
@@ -163,7 +188,18 @@ export default function FieldDataList() {
                                         <span className="uppercase tracking-wide">{item.place}</span>
                                     </div>
                                 </div>
-                                {item.isLocked && <Lock size={14} className="text-rose-400" />}
+                                <div className="flex items-center gap-2">
+                                    {item.isLocked && <Lock size={14} className="text-rose-400" />}
+                                    {isAdmin && (
+                                        <button
+                                            onClick={(e) => handleDeleteClick(e, item._id)}
+                                            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                            title="Delete Entry"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="space-y-2 mb-4">

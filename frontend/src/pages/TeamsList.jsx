@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { teamService, seasonService } from '../services/api';
-import { Users, Filter, MapPin, Edit3, Plus, Search, BookOpen, PlusCircle, Settings2, ArrowUpRight } from 'lucide-react';
+import { Users, Filter, MapPin, Edit3, Plus, Search, BookOpen, PlusCircle, Settings2, ArrowUpRight, Trash2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { confirmDelete, MySwal } from '../utils/swal';
 
 export default function TeamsList() {
     const [teams, setTeams] = useState([]);
@@ -10,6 +11,9 @@ export default function TeamsList() {
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAdmin = currentUser.role === 'admin';
 
     useEffect(() => {
         fetchSeasons();
@@ -44,6 +48,29 @@ export default function TeamsList() {
     const handleSeasonChange = (id) => {
         setSelectedSeason(id);
         fetchTeams(id);
+    };
+
+    const handleDeleteTeam = async (e, id, placeName) => {
+        e.stopPropagation();
+        const confirmed = await confirmDelete(
+            `Delete Team: ${placeName}?`,
+            "Team deletion is only allowed if no field collection entries or final settlements have been recorded."
+        );
+
+        if (confirmed) {
+            try {
+                await teamService.delete(id);
+                MySwal.fire('Deleted!', 'Team has been removed successfully.', 'success');
+                setTeams(prev => prev.filter(t => t._id !== id));
+            } catch (err) {
+                console.error(err);
+                MySwal.fire({
+                    title: 'Restricted Action',
+                    text: err.response?.data?.message || 'Failed to delete team',
+                    icon: 'error'
+                });
+            }
+        }
     };
 
     const filteredTeams = teams.filter(team =>
@@ -107,13 +134,24 @@ export default function TeamsList() {
                                 <h3 className="text-lg font-bold text-slate-900 leading-tight truncate">{team.placeName}</h3>
                             </div>
 
-                            <button
-                                onClick={() => navigate(`/edit-team/${team._id}`)}
-                                className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
-                                title="Edit Team"
-                            >
-                                <Edit3 size={18} />
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => navigate(`/edit-team/${team._id}`)}
+                                    className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                                    title="Edit Team"
+                                >
+                                    <Edit3 size={18} />
+                                </button>
+                                {isAdmin && (
+                                    <button
+                                        onClick={(e) => handleDeleteTeam(e, team._id, team.placeName)}
+                                        className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all shadow-sm"
+                                        title="Delete Team"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {/* Members Section */}

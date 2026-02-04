@@ -8,19 +8,26 @@ router.get('/', async (req, res) => {
         const seasons = await Season.find().sort({ createdAt: -1 });
         res.json(seasons);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('DEBUG - Fetch Seasons Error:', err);
+        // Temporary detailed error for debugging
+        res.status(500).json({
+            debug: true,
+            message: err.message,
+            name: err.name,
+            stack: err.stack
+        });
     }
 });
 
 router.post('/', async (req, res) => {
     const { name } = req.body;
     try {
-        // If active, deactivate others
         const season = new Season({ name });
         await season.save();
         res.json(season);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('DEBUG - Create Season Error:', err);
+        res.status(500).json({ message: err.message, name: err.name });
     }
 });
 
@@ -30,7 +37,8 @@ router.put('/:id/activate', async (req, res) => {
         const season = await Season.findByIdAndUpdate(req.params.id, { isActive: true }, { new: true });
         res.json(season);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('DEBUG - Activate Season Error:', err);
+        res.status(500).json({ message: err.message, name: err.name });
     }
 });
 
@@ -39,7 +47,13 @@ router.get('/active', async (req, res) => {
         const season = await Season.findOne({ isActive: true });
         res.json(season);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('DEBUG - Get Active Season Error:', err);
+        res.status(500).json({
+            debug: true,
+            message: err.message,
+            name: err.name,
+            stack: err.stack
+        });
     }
 });
 

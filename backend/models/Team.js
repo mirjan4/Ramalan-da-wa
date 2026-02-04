@@ -36,4 +36,4 @@ const teamSchema = new mongoose.Schema({
     isLocked: { type: Boolean, default: false },
 }, { timestamps: true });
 
-export default mongoose.model('Team', teamSchema);
+export default mongoose.models.Team || mongoose.model('Team', teamSchema);

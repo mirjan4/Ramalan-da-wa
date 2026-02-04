@@ -4,6 +4,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { Download, Filter, Table as TableIcon, FileSpreadsheet, Edit3, Search, ArrowUpDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MySwal } from '../utils/swal';
 
 export default function Reports() {
     const [teams, setTeams] = useState([]);
@@ -138,6 +139,13 @@ export default function Reports() {
 
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), `Ramalan_Report_${new Date().toLocaleDateString()}.xlsx`);
+        MySwal.fire({
+            title: 'Report Generated!',
+            text: 'The collection report has been downloaded successfully.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
     };
 
     return (

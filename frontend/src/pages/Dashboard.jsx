@@ -161,65 +161,69 @@ export default function Dashboard() {
 
           {/* Row 3: Visual Analytics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="glass-card p-6 border-none bg-white">
+            <div className="glass-card p-6 border-none bg-white min-w-0">
               <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <Users className="text-indigo-600" size={18} /> Team Collection Share
               </h2>
-              <div className="h-[350px] w-full flex flex-col" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height="85%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="50%"
-                      outerRadius="80%"
-                      paddingAngle={2}
-                      dataKey="collection"
-                      nameKey="name"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                      formatter={(value) => `₹${value.toLocaleString()}`}
-                    />
-                    <Legend content={renderLegend} verticalAlign="bottom" />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="h-[350px] w-full relative">
+                <div className="absolute inset-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="50%"
+                        outerRadius="80%"
+                        paddingAngle={2}
+                        dataKey="collection"
+                        nameKey="name"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                        formatter={(value) => `₹${value.toLocaleString()}`}
+                      />
+                      <Legend content={renderLegend} verticalAlign="bottom" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
-            <div className="glass-card p-6 border-none bg-white">
+            <div className="glass-card p-6 border-none bg-white min-w-0">
               <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <Scale className="text-indigo-600" size={18} /> Collection vs Expense
               </h2>
-              <div className="h-[300px] w-full" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis hide />
-                    <Tooltip
-                      cursor={{ fill: '#f8fafc' }}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                      formatter={(value) => `₹${value.toLocaleString()}`}
-                    />
-                    <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={60}>
-                      {barData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                      <LabelList
-                        dataKey="amount"
-                        position="top"
-                        formatter={(v) => `₹${v.toLocaleString()}`}
-                        style={{ fill: '#64748b', fontSize: '12px', fontWeight: 'bold' }}
+              <div className="h-[300px] w-full relative">
+                <div className="absolute inset-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                      <YAxis hide />
+                      <Tooltip
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                        formatter={(value) => `₹${value.toLocaleString()}`}
                       />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                      <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={60}>
+                        {barData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                        <LabelList
+                          dataKey="amount"
+                          position="top"
+                          formatter={(v) => `₹${v.toLocaleString()}`}
+                          style={{ fill: '#64748b', fontSize: '12px', fontWeight: 'bold' }}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>

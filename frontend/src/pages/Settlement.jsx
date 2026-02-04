@@ -3,6 +3,7 @@ import { teamService, settlementService } from '../services/api';
 import TeamSelect from '../components/TeamSelect';
 import { Scale, ShieldAlert, Lock, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { confirmAction, MySwal } from '../utils/swal';
 
 export default function Settlement() {
   const [selectedTeamId, setSelectedTeamId] = useState('');
@@ -26,16 +27,29 @@ export default function Settlement() {
   const status = balance >= 0 ? 'SETTLED' : 'SHORTAGE';
 
   const handleFinalize = async () => {
-    if (!window.confirm('Are you sure you want to finalize? This will LOCK the record for audit safety and cannot be edited later.')) return;
+    const confirmed = await confirmAction({
+      title: "Finalize Settlement?",
+      text: "Once finalized, this team's record will be locked for audit safety and cannot be edited. Proceed?",
+      confirmText: "Finalize & Lock",
+      variant: "warning"
+    });
+
+    if (!confirmed) return;
 
     setLoading(true);
     try {
       await settlementService.finalize(selectedTeamId, { expense: Number(expense) });
-      alert('Settlement finalized and record LOCKED.');
+      await MySwal.fire({
+        title: 'Settled!',
+        text: 'Record has been successfully locked for audit.',
+        icon: 'success',
+        confirmButtonText: 'Great!',
+        timer: 2000
+      });
       navigate('/');
     } catch (err) {
       console.error(err);
-      alert('Error finalizing settlement');
+      MySwal.fire('Error', 'Failed to finalize settlement', 'error');
     } finally {
       setLoading(false);
     }

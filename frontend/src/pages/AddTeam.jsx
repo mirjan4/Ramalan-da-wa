@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { teamService, seasonService } from '../services/api';
 import { Plus, Trash2, UserPlus, MapPin, Globe, Save, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { MySwal } from '../utils/swal';
 
 export default function AddTeam() {
   const { id } = useParams();
@@ -50,20 +51,32 @@ export default function AddTeam() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!activeSeason && !id) return alert('No active season found');
+    if (!activeSeason && !id) return MySwal.fire('No Active Season', 'You must create and activate a season before creating teams.', 'warning');
     setLoading(true);
     try {
       if (id) {
         await teamService.update(id, formData);
-        alert('Team updated successfully');
+        await MySwal.fire({
+          title: 'Updated!',
+          text: 'Team details have been updated successfully.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
       } else {
         await teamService.create({ ...formData, season: activeSeason._id });
-        alert('Team created successfully');
+        await MySwal.fire({
+          title: 'Created!',
+          text: 'New team has been successfully registered.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
       }
       navigate('/teams');
     } catch (err) {
       console.error(err);
-      alert('Error saving team');
+      MySwal.fire('Error', 'Failed to save team details. Please try again.', 'error');
     } finally {
       setLoading(false);
     }

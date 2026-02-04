@@ -3,6 +3,7 @@ import { teamService, seasonService } from '../services/api';
 import TeamSelect from '../components/TeamSelect';
 import { BookPlus, Trash2, Plus, Save, AlertCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { MySwal } from '../utils/swal';
 
 export default function AssignReceiptBook() {
   const [searchParams] = useSearchParams();
@@ -66,19 +67,33 @@ export default function AssignReceiptBook() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedTeamId) return alert('Select a team');
+    if (!selectedTeamId) return MySwal.fire('Oops!', 'Please select a team first.', 'warning');
 
     const hasConflicts = receiptBooks.some(b => usedBooks.has(String(b.bookNumber)));
-    if (hasConflicts) return alert('Please remove or correct conflicting book numbers marked in red.');
+    if (hasConflicts) return MySwal.fire({
+      title: 'Conflicts Detected',
+      text: 'Some book numbers are already assigned to other teams. Please correct the entries marked in red.',
+      icon: 'error'
+    });
 
     setLoading(true);
     try {
       await teamService.assignBooks(selectedTeamId, receiptBooks);
-      alert('Receipt books assigned successfully');
-      navigate('/');
+      await MySwal.fire({
+        title: 'Success!',
+        text: 'Receipt books assigned successfully.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      navigate('/teams');
     } catch (err) {
       console.error(err);
-      alert('Error assigning books');
+      MySwal.fire({
+        title: 'Update Failed',
+        text: err.response?.data?.message || 'Failed to assign books.',
+        icon: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -102,13 +117,36 @@ export default function AssignReceiptBook() {
           <div className="glass-card p-8 border-none bg-white">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-slate-800">Book Details</h2>
-              <button type="button" onClick={handleAddBook} className="btn-secondary text-blue-600 border-blue-200 bg-blue-50 flex items-center gap-2 text-sm">
-                <Plus size={16} /> Add Another Book
-              </button>
+              <div className="flex gap-2">
+                {receiptBooks.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const canClear = receiptBooks.every(b => !(b.isEntered || b.collectedAmount > 0));
+                      if (canClear) setReceiptBooks([]);
+                      else MySwal.fire('Protection Active', 'Cannot clear all books because some have collection data. Remove them individually or clear data first.', 'warning');
+                    }}
+                    className="btn-secondary text-rose-600 border-rose-200 bg-rose-50 flex items-center gap-2 text-sm"
+                  >
+                    <Trash2 size={16} /> Clear All
+                  </button>
+                )}
+                <button type="button" onClick={handleAddBook} className="btn-secondary text-blue-600 border-blue-200 bg-blue-50 flex items-center gap-2 text-sm">
+                  <Plus size={16} /> Add Book
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
-              {receiptBooks.map((book, idx) => (
+              {receiptBooks.length === 0 ? (
+                <div className="p-10 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                  <BookPlus size={40} className="mx-auto text-slate-200 mb-3" />
+                  <p className="text-slate-400 font-medium italic">No receipt books assigned to this team.</p>
+                  <button type="button" onClick={handleAddBook} className="mt-4 text-blue-600 font-bold text-sm hover:underline">
+                    + Assign First Book
+                  </button>
+                </div>
+              ) : receiptBooks.map((book, idx) => (
                 <div key={idx} className="p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-4 relative">
                   <div className="flex-1">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Book Number</label>
@@ -117,12 +155,19 @@ export default function AssignReceiptBook() {
                         required
                         type="number"
                         min="1"
-                        className={`input-field ${usedBooks.has(String(book.bookNumber)) ? 'border-rose-500 focus:ring-rose-200 text-rose-600' : ''}`}
+                        className={`input-field font-bold ${book.isEntered || (book.collectedAmount > 0) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''} ${usedBooks.has(String(book.bookNumber)) && !book._id ? 'border-rose-500 focus:ring-rose-200 text-rose-600' : ''}`}
                         placeholder="e.g. 1"
                         value={book.bookNumber}
+                        readOnly={book.isEntered || (book.collectedAmount > 0)}
                         onChange={e => updateBook(idx, 'bookNumber', e.target.value)}
                       />
-                      {usedBooks.has(String(book.bookNumber)) && (
+                      {(book.isEntered || (book.collectedAmount > 0)) && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 flex items-center gap-1 bg-slate-100 pl-2">
+                          <AlertCircle size={14} />
+                          <span className="text-[10px] font-black uppercase">Used</span>
+                        </div>
+                      )}
+                      {usedBooks.has(String(book.bookNumber)) && !book._id && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500 flex items-center gap-1 bg-white pl-2">
                           <AlertCircle size={16} />
                           <span className="text-xs font-bold">Assigned</span>
@@ -135,9 +180,10 @@ export default function AssignReceiptBook() {
                     <input
                       required
                       type="number"
-                      className="input-field"
+                      className={`input-field ${book.isEntered || (book.collectedAmount > 0) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
                       placeholder="1"
                       value={book.startPage}
+                      readOnly={book.isEntered || (book.collectedAmount > 0)}
                       onChange={e => updateBook(idx, 'startPage', e.target.value)}
                     />
                   </div>
@@ -146,16 +192,22 @@ export default function AssignReceiptBook() {
                     <input
                       required
                       type="number"
-                      className="input-field"
+                      className={`input-field ${book.isEntered || (book.collectedAmount > 0) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
                       placeholder="50"
                       value={book.endPage}
+                      readOnly={book.isEntered || (book.collectedAmount > 0)}
                       onChange={e => updateBook(idx, 'endPage', e.target.value)}
                     />
                   </div>
-                  {receiptBooks.length > 1 && (
+                  {!(book.isEntered || (book.collectedAmount > 0)) && (
                     <button type="button" onClick={() => removeBook(idx)} className="mt-6 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors self-end md:self-center">
                       <Trash2 size={20} />
                     </button>
+                  )}
+                  {(book.isEntered || (book.collectedAmount > 0)) && (
+                    <div className="mt-6 p-2 text-slate-300 self-end md:self-center cursor-help" title="Locked: Collection already recorded for this book.">
+                      <Trash2 size={20} className="grayscale" />
+                    </div>
                   )}
                 </div>
               ))}

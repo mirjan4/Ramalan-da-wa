@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, User, Lock, Save, AlertCircle, CheckCircle, Users, Trash2, Plus, Edit } from 'lucide-react';
 import api, { userService, teamService } from '../services/api';
+import { MySwal, confirmDelete } from '../utils/swal';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState('profile');
@@ -88,27 +89,40 @@ export default function Settings() {
             if (editingUserId) {
                 // Update existing user
                 await userService.update(editingUserId, newUser);
-                setMessage({ type: 'success', text: 'User updated successfully!' });
+                MySwal.fire('Updated!', 'User account has been updated.', 'success');
                 setEditingUserId(null);
                 setNewUser({ username: '', password: '', displayName: '' });
             } else {
                 // Create new user
                 await userService.create(newUser);
                 // Show credentials only once
-                setMessage({
-                    type: 'success',
-                    text: `User created! Username: ${newUser.username}, Password: ${newUser.password}`
+                await MySwal.fire({
+                    title: 'Account Created',
+                    html: `
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 mt-4 text-left">
+                            <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Login Credentials</p>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex justify-between font-mono bg-white p-2 rounded border border-slate-100 italic">
+                                    <span class="text-slate-400">Username:</span>
+                                    <span class="text-indigo-600 font-bold">${newUser.username}</span>
+                                </div>
+                                <div class="flex justify-between font-mono bg-white p-2 rounded border border-slate-100 italic">
+                                    <span class="text-slate-400">Password:</span>
+                                    <span class="text-indigo-600 font-bold">${newUser.password}</span>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-4 italic font-medium">Please share these credentials with the team representative.</p>
+                        </div>
+                    `,
+                    icon: 'success'
                 });
-                // Note: We don't clear newUser immediately if we want to show it? 
-                // Actually user might want to copy.
-                // But the message box handles it.
                 setNewUser({ username: '', password: '', displayName: '' });
             }
 
             setSelectedTeam('');
             fetchUsers();
         } catch (err) {
-            setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to save user' });
+            MySwal.fire('Error', err.response?.data?.message || 'Failed to save user', 'error');
         } finally {
             setLoading(false);
         }
@@ -135,14 +149,15 @@ export default function Settings() {
     };
 
     const handleDeleteUser = async (id) => {
-        if (!confirm('Are you sure you want to delete this user?')) return;
+        const confirmed = await confirmDelete('Delete Account?', 'This team account will be permanently removed. Access will be revoked.');
+        if (!confirmed) return;
         try {
             await userService.delete(id);
-            setMessage({ type: 'success', text: 'User deleted successfully' });
+            MySwal.fire('Deleted!', 'User account has been removed.', 'success');
             fetchUsers();
             if (editingUserId === id) handleCancelEdit();
         } catch (err) {
-            setMessage({ type: 'error', text: 'Failed to delete user' });
+            MySwal.fire('Error', 'Failed to delete user account.', 'error');
         }
     };
 
@@ -156,13 +171,10 @@ export default function Settings() {
 
             if (response.data) {
                 localStorage.setItem('user', JSON.stringify({ ...currentUser, ...response.data.admin }));
-                setMessage({ type: 'success', text: 'Profile updated successfully!' });
+                MySwal.fire('Profile Updated', 'Your profile details have been saved.', 'success');
             }
         } catch (error) {
-            setMessage({
-                type: 'error',
-                text: error.response?.data?.message || 'Failed to update profile'
-            });
+            MySwal.fire('Error', error.response?.data?.message || 'Failed to update profile', 'error');
         } finally {
             setLoading(false);
         }
@@ -193,7 +205,6 @@ export default function Settings() {
             });
 
             if (response.data) {
-                setMessage({ type: 'success', text: 'Password changed successfully!' });
                 setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
                 // update local storage to remove force flag
@@ -201,14 +212,16 @@ export default function Settings() {
                 localStorage.setItem('user', JSON.stringify(updatedUser));
 
                 // verification message
-                alert("Password updated successfully. Please continue.");
+                await MySwal.fire({
+                    title: 'Password Changed!',
+                    text: 'Your security settings have been updated. You can now access all features.',
+                    icon: 'success',
+                    confirmButtonText: 'Continue'
+                });
                 window.location.href = '/'; // Reload to clear forced state
             }
         } catch (error) {
-            setMessage({
-                type: 'error',
-                text: error.response?.data?.message || 'Failed to change password'
-            });
+            MySwal.fire('Error', error.response?.data?.message || 'Failed to change password', 'error');
         } finally {
             setLoading(false);
         }
@@ -271,16 +284,6 @@ export default function Settings() {
                 </div>
             )}
 
-            {/* Message Alert */}
-            {message.text && (
-                <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${message.type === 'success'
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-                    : 'bg-rose-50 border border-rose-200 text-rose-700'
-                    }`}>
-                    {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                    <span className="font-semibold text-sm">{message.text}</span>
-                </div>
-            )}
 
             {/* Profile Settings Tab */}
             {activeTab === 'profile' && (
