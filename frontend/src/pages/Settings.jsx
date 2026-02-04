@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, User, Lock, Save, AlertCircle, CheckCircle, Users, Trash2, Plus, Edit } from 'lucide-react';
 import api, { userService, teamService } from '../services/api';
 import { MySwal, confirmDelete } from '../utils/swal';
+import TeamSelect from '../components/TeamSelect';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState('profile');
@@ -393,29 +394,20 @@ export default function Settings() {
                         </div>
 
                         <form onSubmit={handleSaveUser} className="space-y-4">
-                            <div>
-                                <label className="label">Select Team</label>
-                                <select
-                                    required
-                                    className="input-field"
-                                    value={selectedTeam}
-                                    onChange={(e) => handleTeamSelect(e.target.value)}
-                                >
-                                    <option value="">-- Select a Team --</option>
-                                    {teams.map(team => (
-                                        <option key={team._id} value={team._id}>{team.placeName}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            <TeamSelect
+                                selectedId={selectedTeam}
+                                onSelect={(id) => handleTeamSelect(id)}
+                            />
                             <div>
                                 <label className="label">Username (Auto-generated)</label>
                                 <input
                                     type="text"
-                                    readOnly
-                                    disabled
-                                    className="input-field font-bold bg-slate-100 text-slate-500 cursor-not-allowed"
+                                    required
+                                    className="input-field font-bold"
                                     value={newUser.username}
+                                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                                 />
+                                <p className="text-[10px] text-slate-400 mt-1 italic">You can modify the auto-generated username if needed.</p>
                             </div>
 
                             <div>
