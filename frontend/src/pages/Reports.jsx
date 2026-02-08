@@ -59,7 +59,9 @@ export default function Reports() {
     const filteredAndSortedTeams = teams
         .filter(team =>
             team.placeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            team.state.toLowerCase().includes(searchQuery.toLowerCase())
+            team.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (team.cashRef && team.cashRef.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (team.bankRef && team.bankRef.toLowerCase().includes(searchQuery.toLowerCase()))
         )
         .sort((a, b) => {
             if (sortBy === 'high-to-low') return b.totalCollection - a.totalCollection;
@@ -82,6 +84,8 @@ export default function Reports() {
             { header: 'Advance', key: 'advance', width: 15 },
             { header: 'Expense', key: 'expense', width: 15 },
             { header: 'Balance', key: 'balance', width: 15 },
+            { header: 'Cash Ref', key: 'cashRef', width: 15 },
+            { header: 'Bank Ref', key: 'bankRef', width: 15 },
             { header: 'Status', key: 'status', width: 15 },
         ];
 
@@ -108,6 +112,8 @@ export default function Reports() {
                     advance: team.advanceAmount || 0,
                     expense: team.expense,
                     balance: team.balance,
+                    cashRef: team.cashRef || '',
+                    bankRef: team.bankRef || '',
                     status: team.status,
                 });
                 currentRow++;
@@ -117,7 +123,7 @@ export default function Reports() {
 
             // Merge cells for team details
             if (endRow >= startRow) {
-                ['A', 'B', 'F', 'G', 'H', 'I', 'J'].forEach((col) => {
+                ['A', 'B', 'F', 'G', 'H', 'I', 'J', 'K', 'L'].forEach((col) => {
                     worksheet.mergeCells(`${col}${startRow}:${col}${endRow}`);
                     // Center aligned for merged cells
                     worksheet.getCell(`${col}${startRow}`).alignment = { vertical: 'middle', horizontal: 'center' };
@@ -212,6 +218,8 @@ export default function Reports() {
                                 <th className="px-6 py-5 text-center cursor-default">Advance</th>
                                 <th className="px-6 py-5 text-center cursor-default">Expense</th>
                                 <th className="px-6 py-5 text-center cursor-default">Balance</th>
+                                <th className="px-6 py-5 text-center cursor-default">Cash Ref</th>
+                                <th className="px-6 py-5 text-center cursor-default">Bank Ref</th>
                                 <th className="px-6 py-5 text-center cursor-default">Status</th>
                                 <th className="px-6 py-5 text-center cursor-default">Actions</th>
                             </tr>
@@ -251,6 +259,12 @@ export default function Reports() {
                                         <span className={`font-black text-lg ${team.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                             ₹{(team.balance || 0).toLocaleString()}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center text-sm font-mono text-slate-500">
+                                        {team.cashRef || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 text-center text-sm font-mono text-slate-500">
+                                        {team.bankRef || '-'}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${team.status === 'SETTLED' ? 'bg-emerald-100 text-emerald-700' :

@@ -148,7 +148,7 @@ export default function CollectionEntry() {
           onClick={handlePrint}
           className="btn-secondary flex items-center gap-2 px-6 py-3 border-slate-200"
         >
-          <Printer size={18} /> 
+          <Printer size={18} />
         </button>
       </div>
 
@@ -351,7 +351,7 @@ export default function CollectionEntry() {
                 onClick={handlePrint}
                 className="btn-secondary flex items-center gap-2 px-8 py-4 bg-white hover:bg-slate-50"
               >
-                <Printer size={20} /> Print 
+                <Printer size={20} /> Print
               </button>
               <button
                 type="submit"
@@ -364,111 +364,156 @@ export default function CollectionEntry() {
           </form>
 
           {/* Printable Settlement Sheet */}
-          <div className="hidden print:block p-10 bg-white text-black font-serif text-sm leading-relaxed mx-auto max-w-[210mm]">
-            <div className="text-center border-b-2 border-black pb-4 mb-6">
-              <h1 className="text-xl font-black uppercase mb-1">
-                RAMALAN DA’WA – {team.season?.name?.replace(/[^0-9]/g, '') || ''}
+          {/* Printable Settlement Sheet */}
+          <div className="hidden print:block p-8 bg-white text-black font-sans text-[11px] leading-tight mx-auto max-w-[210mm] min-h-screen relative flex flex-col">
+
+            {/* Header */}
+            <div className="text-center border-b-2 border-black pb-2 mb-4">
+              <h1 className="text-xl font-bold uppercase tracking-widest">
+                {team.season?.name || 'Ramalan Season'}
               </h1>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1">Settlement & Final Audit Sheet</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div>
-                <p><strong>Place :</strong> {team.placeName}</p>
-                <p><strong>State :</strong> {team.state}</p>
+            {/* Meta Info */}
+            <div className="flex justify-between items-end mb-4 border-b border-black pb-2">
+              <div className="flex gap-8">
+                <p><strong className="uppercase text-[9px] mr-2 text-slate-600">Location:</strong> <span className="font-bold text-sm">{team.placeName}, {team.state}</span></p>
               </div>
               <div className="text-right">
-                <p><strong>Date :</strong> {new Date().toLocaleDateString('en-IN')}</p>
+                <p><strong className="uppercase text-[9px] mr-2 text-slate-600">Date:</strong> <span className="font-bold">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></p>
               </div>
             </div>
 
-            <section className="mb-8">
-              <h2 className="text-sm font-bold mb-2 uppercase border-b border-black">Team Members:</h2>
-              <table className="w-full border-collapse border border-black text-xs">
+            {/* Team Members */}
+            <section className="mb-4 break-inside-avoid">
+              <h2 className="text-[10px] font-bold mb-1 uppercase tracking-wider border-b border-black w-fit">Team Members</h2>
+              <table className="w-full border-collapse border border-black text-[10px]">
                 <thead>
-                  <tr className="bg-slate-100">
-                    <th className="border border-black p-2 text-left">Name</th>
-                    <th className="border border-black p-2 text-left">Class</th>
-                    <th className="border border-black p-2 text-left">Phone</th>
+                  <tr className="bg-slate-50">
+                    <th className="border border-black p-1 text-left w-1/3">Name</th>
+                    <th className="border border-black p-1 text-left w-1/3">Class</th>
+                    <th className="border border-black p-1 text-left w-1/3">Phone</th>
                   </tr>
                 </thead>
                 <tbody>
                   {team.members.map((m, i) => (
                     <tr key={i}>
-                      <td className="border border-black p-2">{m.name}</td>
-                      <td className="border border-black p-2">{m.class}</td>
-                      <td className="border border-black p-2">{m.phone}</td>
+                      <td className="border border-black p-1 pl-2 font-medium">{m.name}</td>
+                      <td className="border border-black p-1 pl-2">{m.class}</td>
+                      <td className="border border-black p-1 pl-2">{m.phone}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </section>
 
-            <section className="mb-8">
-              <h2 className="text-sm font-bold mb-2 uppercase border-b border-black">Receipt Book Details:</h2>
-              <table className="w-full border-collapse border border-black text-xs">
+            {/* Receipt Books */}
+            <section className="mb-4 break-inside-avoid">
+              <h2 className="text-[10px] font-bold mb-1 uppercase tracking-wider border-b border-black w-fit">Receipt Book Details</h2>
+              <table className="w-full border-collapse border border-black text-[10px]">
                 <thead>
-                  <tr className="bg-slate-100">
-                    <th className="border border-black p-2 text-left">Book No</th>
-                    <th className="border border-black p-2 text-left">Receipt Range</th>
-                    <th className="border border-black p-2 text-right">Amount (₹)</th>
+                  <tr className="bg-slate-100 font-bold text-center">
+                    <th className="border border-black p-1 w-16">Book #</th>
+                    <th className="border border-black p-1 w-24">Start No</th>
+                    <th className="border border-black p-1 w-24">End No</th>
+                    <th className="border border-black p-1 text-right">Amount (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {receiptBooks.filter(b => Number(b.collectedAmount) > 0).map((b, i) => (
                     <tr key={i}>
-                      <td className="border border-black p-2">{b.bookNumber}</td>
-                      <td className="border border-black p-2">{b.usedStartPage} – {b.usedEndPage}</td>
-                      <td className="border border-black p-2 text-right">{Number(b.collectedAmount).toLocaleString()}</td>
+                      <td className="border border-black p-1 text-center font-bold">{b.bookNumber}</td>
+                      <td className="border border-black p-1 text-center font-mono text-slate-700">{b.usedStartPage}</td>
+                      <td className="border border-black p-1 text-center font-mono text-slate-700">{b.usedEndPage}</td>
+                      <td className="border border-black p-1 pr-2 text-right font-medium">{Number(b.collectedAmount).toLocaleString()}</td>
                     </tr>
                   ))}
-                  <tr className="font-bold">
-                    <td colSpan="2" className="border border-black p-2 text-right">Total Collection from Books:</td>
-                    <td className="border border-black p-2 text-right">₹{totalCalculated.toLocaleString()}</td>
+                  <tr className="bg-slate-50 font-bold border-t-2 border-black">
+                    <td colSpan="3" className="border border-black p-1 pr-3 text-right uppercase text-[9px] tracking-wide">Total Collection From Books:</td>
+                    <td className="border border-black p-1 pr-2 text-right">₹{totalCalculated.toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
 
               {receiptBooks.some(b => Number(b.collectedAmount) <= 0) && (
-                <div className="mt-2 text-[10px] text-slate-600">
-                  <span className="font-bold uppercase">Unused / Non-Collection Books:</span> {receiptBooks.filter(b => Number(b.collectedAmount) <= 0).map(b => b.bookNumber).join(', ')}
+                <div className="mt-1 text-[9px] text-slate-500 italic">
+                  <span className="font-bold">Unused:</span> {receiptBooks.filter(b => Number(b.collectedAmount) <= 0).map(b => b.bookNumber).join(', ')}
                 </div>
               )}
             </section>
 
-            <section className="mb-10 space-y-2">
-              <h2 className="text-sm font-bold mb-2 uppercase border-b border-black">Collection Summary:</h2>
-              <div className="grid grid-cols-[250px_1fr] gap-x-4">
-                <span>Total Collection</span> <span className="font-bold">: ₹{totalCalculated.toLocaleString()}</span>
-                <span>Expense</span> <span className="font-bold">: ₹{Number(expense).toLocaleString()}</span>
-                <span>Advance (Already Given)</span> <span className="font-bold">: ₹{Number(advanceAmount).toLocaleString()}</span>
-                <div className="col-span-2 border-t border-dotted border-black my-1"></div>
-                <span className="font-bold uppercase tracking-tight">Net Balance (Due to Office)</span> <span className="text-lg font-black">: ₹{netProfit.toLocaleString()}</span>
-                <span>Actual Cash Received {cashRef && <span className="text-[9px] font-normal italic opacity-60">({cashRef})</span>}</span>
-                <span className="font-bold">: ₹{Number(cashAmount).toLocaleString()}</span>
-                <span>Actual Bank Received {bankRef && <span className="text-[9px] font-normal italic opacity-60">({bankRef})</span>}</span>
-                <span className="font-bold">: ₹{Number(bankAmount).toLocaleString()}</span>
-                <div className="col-span-2 border-t border-dotted border-black my-1"></div>
-                <span className="font-bold uppercase">Total Received (Cash + Bank)</span> <span className="font-bold text-lg">: ₹{breakupTotal.toLocaleString()}</span>
-              </div>
-            </section>
+            {/* Unified Summary & Footer Block - Guaranteed Grouping */}
+            <div className="break-inside-avoid mt-auto">
 
-            <div className="mb-12">
-              <p className="font-bold">Final Status: <span className="uppercase underline px-4">{status}</span></p>
-            </div>
+              {/* Boxed Collection Summary */}
+              <div className="border-2 border-black mb-4 text-[10px] font-mono shadow-sm">
+                <div className="border-b-2 border-black bg-slate-50 p-1 text-center font-bold uppercase tracking-widest text-[11px]">
+                  Collection Summary
+                </div>
+                <div className="p-2 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-700">Total Collection</span>
+                    <span className="font-bold">: ₹ {totalCalculated.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-700">Expense (-)</span>
+                    <span className="font-bold">: ₹ {Number(expense).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-700">Advance Given (-)</span>
+                    <span className="font-bold">: ₹ {Number(advanceAmount).toLocaleString()}</span>
+                  </div>
 
-            <div className="mt-20 grid grid-cols-2 gap-20">
-              <div className="text-center pt-4 border-t border-black">
-                <p className="font-bold">Team Representative</p>
-                <p className="text-[10px] text-slate-500 uppercase mt-1">(Sign & Date)</p>
-              </div>
-              <div className="text-center pt-4 border-t border-black">
-                <p className="font-bold">Office Accountant</p>
-                <p className="text-[10px] text-slate-500 uppercase mt-1">(Sign & Stamp)</p>
-              </div>
-            </div>
+                  <div className="border-t border-dashed border-black my-1 opacity-50"></div>
 
-            <div className="mt-10 pt-4 border-t border-dashed border-slate-300 text-center text-[10px] text-slate-400 italic">
-              This is a computer-generated settlement sheet. No corrections should be made by hand.
+                  <div className="flex justify-between items-center font-bold text-[11px] bg-slate-50 -mx-2 px-2 py-0.5 border-y border-dashed border-slate-300">
+                    <span className="uppercase tracking-tight">Net Balance (Due to Office)</span>
+                    <span>: ₹ {netProfit.toLocaleString()}</span>
+                  </div>
+
+                  <div className="border-t border-dashed border-black my-1 opacity-50"></div>
+
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="">Actual Cash {cashRef && <span className="text-[9px]">({cashRef})</span>}</span>
+                    <span className="font-medium text-black">: ₹ {Number(cashAmount).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="">Actual Bank {bankRef && <span className="text-[9px]">({bankRef})</span>}</span>
+                    <span className="font-medium text-black">: ₹ {Number(bankAmount).toLocaleString()}</span>
+                  </div>
+
+                  <div className="border-t-2 border-black my-1"></div>
+
+                  <div className="flex justify-between items-center font-black text-sm">
+                    <span className="uppercase tracking-tighter">Total Received</span>
+                    <span>: ₹ {breakupTotal.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+             <div>
+              <br />
+              <br />
+              <br />
+             </div>
+
+              {/* Signatures */}
+              <div className="grid grid-cols-2 gap-8 mb-2">
+                <div className="text-center pt-6 border-t border-black">
+                  <p className="font-bold text-[10px] uppercase">Team Representative</p>
+                  <p className="text-[8px] text-slate-500 uppercase mt-0.5">(Sign & Date)</p>
+                </div>
+                <div className="text-center pt-6 border-t border-black">
+                  <p className="font-bold text-[10px] uppercase">Office Accountant</p>
+                  <p className="text-[8px] text-slate-500 uppercase mt-0.5">(Sign & Stamp)</p>
+                </div>
+              </div>
+
+              {/* Footer Note */}
+              <div className="text-center text-[8px] text-slate-400 italic pt-2 border-t border-dotted border-slate-300">
+                This is a computer-generated settlement sheet. Generated on {new Date().toLocaleString()}.
+              </div>
             </div>
           </div>
         </>
