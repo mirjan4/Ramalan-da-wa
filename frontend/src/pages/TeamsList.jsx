@@ -53,10 +53,11 @@ export default function TeamsList() {
 
     const handlePrintSheet = (team) => {
         setPrintingTeam(team);
+        // Increased timeout for mobile rendering stability
         setTimeout(() => {
             window.print();
             setPrintingTeam(null);
-        }, 100);
+        }, 500);
     };
 
     const handleDeleteTeam = async (e, id, placeName) => {
@@ -212,7 +213,7 @@ export default function TeamsList() {
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {team.receiptBooks && team.receiptBooks.length > 0 ? (
-                                        team.receiptBooks.map((b, i) => (
+                                        team.receiptBooks.slice().sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber)).map((b, i) => (
                                             <span key={i} className="px-2 py-1 bg-white border border-slate-200 group-hover/books:border-indigo-200 rounded text-[10px] font-bold text-slate-600 group-hover/books:text-indigo-700 transition-colors">
                                                 {b.bookNumber}
                                             </span>
@@ -229,7 +230,7 @@ export default function TeamsList() {
 
             {/* Hidden Printable Team Issue Sheet */}
             {printingTeam && (
-                <div className="hidden print:block p-10 bg-white text-black font-serif text-[12px] leading-tight mx-auto w-full">
+                <div className="hidden print:flex print-force-show flex-col p-10 bg-white text-black font-serif text-[12px] leading-tight mx-auto min-h-screen">
                     {/* Compact Header */}
                     <div className="text-center border-b-2 border-black pb-2 mb-4">
                         <h1 className="text-xl font-bold uppercase tracking-widest">
@@ -284,7 +285,7 @@ export default function TeamsList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {printingTeam.receiptBooks?.map((b, i) => (
+                                {printingTeam.receiptBooks?.slice().sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber)).map((b, i) => (
                                     <tr key={i} className="h-10 page-break-inside-avoid">
                                         <td className="border border-black text-center font-black text-base">{b.bookNumber}</td>
                                         <td className="border border-black text-center text-slate-600">{(b.bookNumber * 50) - 49}</td>

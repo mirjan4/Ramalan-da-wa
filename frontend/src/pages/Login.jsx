@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { authService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, LogIn } from 'lucide-react';
+import { Lock, User, LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login({ setUser }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -64,12 +65,19 @@ export default function Login({ setUser }) {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Lock size={20} /></span>
                 <input
                   required
-                  type="password"
-                  className="input-field pl-10"
+                  type={showPassword ? "text" : "password"}
+                  className="input-field pl-10 pr-10"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 

@@ -148,7 +148,7 @@ export default function CollectionEntry() {
           onClick={handlePrint}
           className="btn-secondary flex items-center gap-2 px-6 py-3 border-slate-200"
         >
-          <Printer size={18} /> Print Sheet
+          <Printer size={18} /> 
         </button>
       </div>
 
@@ -351,7 +351,7 @@ export default function CollectionEntry() {
                 onClick={handlePrint}
                 className="btn-secondary flex items-center gap-2 px-8 py-4 bg-white hover:bg-slate-50"
               >
-                <Printer size={20} /> Print Preview
+                <Printer size={20} /> Print 
               </button>
               <button
                 type="submit"

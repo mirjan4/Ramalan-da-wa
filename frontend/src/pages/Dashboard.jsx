@@ -75,16 +75,16 @@ export default function Dashboard() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Dashboard Overview</h1>
           <p className="text-sm text-slate-500 mt-0.5">Managing collection for: <span className="text-indigo-600 font-semibold">{activeSeason.name}</span></p>
         </div>
-        <div className="flex gap-4">
-          <Link to="/reports" className="btn-secondary flex items-center gap-2">
-            View All Reports
+        <div className="flex flex-col-reverse md:flex-row gap-3 w-full md:w-auto">
+          <Link to="/reports" className="btn-secondary flex justify-center items-center gap-2 w-full md:w-auto">
+            <BookOpen size={18} className="md:hidden" /> <span className="md:inline">View Reports</span>
           </Link>
-          <Link to="/add-team" className="btn-primary flex items-center gap-2">
+          <Link to="/add-team" className="btn-primary flex justify-center items-center gap-2 w-full md:w-auto shadow-lg shadow-indigo-200 md:shadow-none">
             <Plus size={18} /> Add New Team
           </Link>
         </div>

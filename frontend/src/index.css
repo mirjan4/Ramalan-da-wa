@@ -164,4 +164,11 @@
     td {
         padding: 6px !important;
     }
+
+    /* Support for mobile rendering of toggled elements */
+    .print-force-show {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
 }
