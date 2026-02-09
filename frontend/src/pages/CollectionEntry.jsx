@@ -4,6 +4,12 @@ import TeamSelect from '../components/TeamSelect';
 import { Calculator, Save, AlertCircle, Scale, Printer, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MySwal } from '../utils/swal';
+import PrintContainer from '../components/print/PrintContainer';
+import PrintHeader from '../components/print/PrintHeader';
+import TeamMembersSection from '../components/print/TeamMembersSection';
+import ReceiptBookDetails from '../components/print/ReceiptBookDetails';
+import CollectionSummary from '../components/print/CollectionSummary';
+import PrintFooter from '../components/print/PrintFooter';
 
 export default function CollectionEntry() {
   const [searchParams] = useSearchParams();
@@ -161,8 +167,11 @@ export default function CollectionEntry() {
           <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 print:hidden">
             {/* Part 1: Receipt Books */}
             <div className="glass-card p-8 border-none bg-white">
-              <h2 className="text-xl font-bold mb-6 text-slate-800 flex items-center gap-2">
-                <Calculator className="text-indigo-600" size={20} /> Receipt Book Entries
+              <h2 className="text-xl font-bold mb-6 text-slate-800 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Calculator className="text-indigo-600" size={20} /> Receipt Book Entries
+                </span>
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">{receiptBooks.length} Books Assigned</span>
               </h2>
 
               <div className="overflow-x-auto">
@@ -364,158 +373,35 @@ export default function CollectionEntry() {
           </form>
 
           {/* Printable Settlement Sheet */}
-          {/* Printable Settlement Sheet */}
-          <div className="hidden print:block p-8 bg-white text-black font-sans text-[11px] leading-tight mx-auto max-w-[210mm] min-h-screen relative flex flex-col">
+          <PrintContainer>
+            <PrintHeader
+              season={team.season?.name}
+              location={`${team.placeName}, ${team.state}`}
+              date={new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            />
 
-            {/* Header */}
-            <div className="text-center border-b-2 border-black pb-2 mb-4">
-              <h1 className="text-xl font-bold uppercase tracking-widest">
-                {team.season?.name || 'Ramalan Season'}
-              </h1>
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] mt-1">Settlement & Final Audit Sheet</p>
-            </div>
+            <TeamMembersSection members={team.members} />
 
-            {/* Meta Info */}
-            <div className="flex justify-between items-end mb-4 border-b border-black pb-2">
-              <div className="flex gap-8">
-                <p><strong className="uppercase text-[9px] mr-2 text-slate-600">Location:</strong> <span className="font-bold text-sm">{team.placeName}, {team.state}</span></p>
-              </div>
-              <div className="text-right">
-                <p><strong className="uppercase text-[9px] mr-2 text-slate-600">Date:</strong> <span className="font-bold">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></p>
-              </div>
-            </div>
+            <ReceiptBookDetails
+              books={receiptBooks}
+              total={totalCalculated}
+            />
 
-            {/* Team Members */}
-            <section className="mb-4 break-inside-avoid">
-              <h2 className="text-[10px] font-bold mb-1 uppercase tracking-wider border-b border-black w-fit">Team Members</h2>
-              <table className="w-full border-collapse border border-black text-[10px]">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="border border-black p-1 text-left w-1/3">Name</th>
-                    <th className="border border-black p-1 text-left w-1/3">Class</th>
-                    <th className="border border-black p-1 text-left w-1/3">Phone</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {team.members.map((m, i) => (
-                    <tr key={i}>
-                      <td className="border border-black p-1 pl-2 font-medium">{m.name}</td>
-                      <td className="border border-black p-1 pl-2">{m.class}</td>
-                      <td className="border border-black p-1 pl-2">{m.phone}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-
-            {/* Receipt Books */}
-            <section className="mb-4 break-inside-avoid">
-              <h2 className="text-[10px] font-bold mb-1 uppercase tracking-wider border-b border-black w-fit">Receipt Book Details</h2>
-              <table className="w-full border-collapse border border-black text-[10px]">
-                <thead>
-                  <tr className="bg-slate-100 font-bold text-center">
-                    <th className="border border-black p-1 w-16">Book #</th>
-                    <th className="border border-black p-1 w-24">Start No</th>
-                    <th className="border border-black p-1 w-24">End No</th>
-                    <th className="border border-black p-1 text-right">Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {receiptBooks.filter(b => Number(b.collectedAmount) > 0).map((b, i) => (
-                    <tr key={i}>
-                      <td className="border border-black p-1 text-center font-bold">{b.bookNumber}</td>
-                      <td className="border border-black p-1 text-center font-mono text-slate-700">{b.usedStartPage}</td>
-                      <td className="border border-black p-1 text-center font-mono text-slate-700">{b.usedEndPage}</td>
-                      <td className="border border-black p-1 pr-2 text-right font-medium">{Number(b.collectedAmount).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                  <tr className="bg-slate-50 font-bold border-t-2 border-black">
-                    <td colSpan="3" className="border border-black p-1 pr-3 text-right uppercase text-[9px] tracking-wide">Total Collection From Books:</td>
-                    <td className="border border-black p-1 pr-2 text-right">₹{totalCalculated.toLocaleString()}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {receiptBooks.some(b => Number(b.collectedAmount) <= 0) && (
-                <div className="mt-1 text-[9px] text-slate-500 italic">
-                  <span className="font-bold">Unused:</span> {receiptBooks.filter(b => Number(b.collectedAmount) <= 0).map(b => b.bookNumber).join(', ')}
-                </div>
-              )}
-            </section>
-
-            {/* Unified Summary & Footer Block - Guaranteed Grouping */}
-            <div className="break-inside-avoid mt-auto">
-
-              {/* Boxed Collection Summary */}
-              <div className="border-2 border-black mb-4 text-[10px] font-mono shadow-sm">
-                <div className="border-b-2 border-black bg-slate-50 p-1 text-center font-bold uppercase tracking-widest text-[11px]">
-                  Collection Summary
-                </div>
-                <div className="p-2 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-slate-700">Total Collection</span>
-                    <span className="font-bold">: ₹ {totalCalculated.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-slate-700">Expense (-)</span>
-                    <span className="font-bold">: ₹ {Number(expense).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-slate-700">Advance Given (-)</span>
-                    <span className="font-bold">: ₹ {Number(advanceAmount).toLocaleString()}</span>
-                  </div>
-
-                  <div className="border-t border-dashed border-black my-1 opacity-50"></div>
-
-                  <div className="flex justify-between items-center font-bold text-[11px] bg-slate-50 -mx-2 px-2 py-0.5 border-y border-dashed border-slate-300">
-                    <span className="uppercase tracking-tight">Net Balance (Due to Office)</span>
-                    <span>: ₹ {netProfit.toLocaleString()}</span>
-                  </div>
-
-                  <div className="border-t border-dashed border-black my-1 opacity-50"></div>
-
-                  <div className="flex justify-between items-center text-slate-600">
-                    <span className="">Actual Cash {cashRef && <span className="text-[9px]">({cashRef})</span>}</span>
-                    <span className="font-medium text-black">: ₹ {Number(cashAmount).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-600">
-                    <span className="">Actual Bank {bankRef && <span className="text-[9px]">({bankRef})</span>}</span>
-                    <span className="font-medium text-black">: ₹ {Number(bankAmount).toLocaleString()}</span>
-                  </div>
-
-                  <div className="border-t-2 border-black my-1"></div>
-
-                  <div className="flex justify-between items-center font-black text-sm">
-                    <span className="uppercase tracking-tighter">Total Received</span>
-                    <span>: ₹ {breakupTotal.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-             <div>
-              <br />
-              <br />
-              <br />
-             </div>
-
-              {/* Signatures */}
-              <div className="grid grid-cols-2 gap-8 mb-2">
-                <div className="text-center pt-6 border-t border-black">
-                  <p className="font-bold text-[10px] uppercase">Team Representative</p>
-                  <p className="text-[8px] text-slate-500 uppercase mt-0.5">(Sign & Date)</p>
-                </div>
-                <div className="text-center pt-6 border-t border-black">
-                  <p className="font-bold text-[10px] uppercase">Office Accountant</p>
-                  <p className="text-[8px] text-slate-500 uppercase mt-0.5">(Sign & Stamp)</p>
-                </div>
-              </div>
-
-              {/* Footer Note */}
-              <div className="text-center text-[8px] text-slate-400 italic pt-2 border-t border-dotted border-slate-300">
-                This is a computer-generated settlement sheet. Generated on {new Date().toLocaleString()}.
-              </div>
-            </div>
-          </div>
+            <CollectionSummary
+              total={totalCalculated}
+              expense={expense}
+              advance={advanceAmount}
+              netBalance={netProfit}
+              cash={cashAmount}
+              bank={bankAmount}
+              totalReceived={breakupTotal}
+              cashRef={cashRef}
+              bankRef={bankRef}
+              status={status}
+            >
+              <PrintFooter />
+            </CollectionSummary>
+          </PrintContainer>
         </>
       )}
     </div>

@@ -11,6 +11,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Ensure Database Connection for every request (Serverless pattern)
+app.use(async (req, res, next) => {
+    try {
+        await dbConnect();
+        next();
+    } catch (err) {
+        console.error('Database connection error:', err);
+        res.status(500).json({ error: 'Database connection failed' });
+    }
+});
+
 // Models (Safe initialization)
 import Admin from './models/Admin.js';
 import Season from './models/Season.js';

@@ -79,96 +79,58 @@
 @media print {
     @page {
         size: A4;
-        margin: 0;
-        /* Zero margin to block browser from injecting title/URL in header/footer */
+        margin: 12mm;
     }
 
-    /* Remove screen elements */
-    header,
-    aside,
-    nav,
-    footer,
-    .print-hidden,
-    button {
+    /* Reset all scrolling and height constraints */
+    * {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    /* Hide screen-only elements */
+    header, aside, nav, footer, .print-hidden, button, .no-print {
         display: none !important;
     }
 
-    html,
-    body {
-        width: 210mm;
-        height: auto !important;
-        /* Allow natural height for multipage content */
+    /* Layout Reset */
+    html, body {
+        width: 100%;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: visible !important;
-        /* Ensure content can flow to next page */
         background-color: white !important;
         color: black !important;
+        font-size: 11pt;
+        line-height: 1.3;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    /* Simulate standard A4 padding for content protection */
-    main {
-        padding: 15mm !important;
-        margin: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
+    /* Page Break Utilities */
+    .avoid-break {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
-    /* Prevent breaking inside key sections */
-    section,
-    tr,
-    thead,
-    .mb-8,
-    .mb-10,
-    .mt-20 {
-        page-break-inside: avoid !important;
+    .print-block {
+        break-inside: auto;
     }
 
-    .glass-card {
-        box-shadow: none !important;
-        border: none !important;
-        background: transparent !important;
-        padding: 0 !important;
-    }
-
-    /* Fixed typography for professional paper output */
-    body {
-        font-size: 11px !important;
-        /* Compact & Professional */
-        line-height: 1.4 !important;
-    }
-
-    h1 {
-        font-size: 18pt !important;
-        margin-bottom: 5pt !important;
-    }
-
-    h2 {
-        font-size: 14pt !important;
-        margin-top: 10pt !important;
-        margin-bottom: 5pt !important;
-    }
-
-    /* Enforce rigid borders for physical handovers */
-    table,
-    th,
-    td {
-        border: 1.5px solid black !important;
+    /* Table Styling */
+    table {
+        width: 100%;
         border-collapse: collapse !important;
     }
-
-    th,
-    td {
-        padding: 6px !important;
+    
+    th, td {
+        border: 1px solid black !important;
+        padding: 4px 8px !important;
+        font-size: 10pt;
     }
-
-    /* Support for mobile rendering of toggled elements */
+    
+    /* Ensure visibility of print-specific elements */
     .print-force-show {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        display: block !important;
     }
 }

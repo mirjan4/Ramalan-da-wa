@@ -3,6 +3,10 @@ import { teamService, seasonService } from '../services/api';
 import { Users, Filter, MapPin, Edit3, Plus, Search, BookOpen, PlusCircle, Settings2, ArrowUpRight, Trash2, Printer } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { confirmDelete, MySwal } from '../utils/swal';
+import PrintContainer from '../components/print/PrintContainer';
+import PrintHeader from '../components/print/PrintHeader';
+import TeamMembersSection from '../components/print/TeamMembersSection';
+import PrintFooter from '../components/print/PrintFooter';
 
 export default function TeamsList() {
     const [teams, setTeams] = useState([]);
@@ -53,11 +57,10 @@ export default function TeamsList() {
 
     const handlePrintSheet = (team) => {
         setPrintingTeam(team);
-        // Increased timeout for mobile rendering stability
         setTimeout(() => {
             window.print();
             setPrintingTeam(null);
-        }, 500);
+        }, 100);
     };
 
     const handleDeleteTeam = async (e, id, placeName) => {
@@ -207,17 +210,20 @@ export default function TeamsList() {
                             >
                                 <div className="flex justify-between items-center mb-2 mt-2">
                                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 group-hover/books:text-indigo-600 transition-colors">
-                                        <BookOpen size={12} /> Receipt Books
+                                        <BookOpen size={12} /> Receipt Books ({team.receiptBooks?.length || 0})
                                     </div>
                                     <ArrowUpRight size={14} className="text-slate-300 group-hover/books:text-indigo-600 opacity-0 group-hover/books:opacity-100 transition-all transform group-hover/books:translate-x-1" />
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {team.receiptBooks && team.receiptBooks.length > 0 ? (
-                                        team.receiptBooks.slice().sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber)).map((b, i) => (
-                                            <span key={i} className="px-2 py-1 bg-white border border-slate-200 group-hover/books:border-indigo-200 rounded text-[10px] font-bold text-slate-600 group-hover/books:text-indigo-700 transition-colors">
-                                                {b.bookNumber}
-                                            </span>
-                                        ))
+                                        team.receiptBooks
+                                            .slice()
+                                            .sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber))
+                                            .map((b, i) => (
+                                                <span key={i} className="px-2 py-1 bg-white border border-slate-200 group-hover/books:border-indigo-200 rounded text-[10px] font-bold text-slate-600 group-hover/books:text-indigo-700 transition-colors">
+                                                    {b.bookNumber}
+                                                </span>
+                                            ))
                                     ) : (
                                         <span className="text-[10px] text-slate-400 italic bg-slate-50 px-2 py-1 rounded border border-transparent group-hover/books:border-indigo-100 group-hover/books:bg-white transition-colors">Assign Books</span>
                                     )}
@@ -230,88 +236,62 @@ export default function TeamsList() {
 
             {/* Hidden Printable Team Issue Sheet */}
             {printingTeam && (
-                <div className="hidden print:flex print-force-show flex-col p-10 bg-white text-black font-serif text-[12px] leading-tight mx-auto min-h-screen">
-                    {/* Compact Header */}
-                    <div className="text-center border-b-2 border-black pb-2 mb-4">
-                        <h1 className="text-xl font-bold uppercase tracking-widest">
-                            {seasons.find(s => s._id === selectedSeason)?.name || 'Ramalan Season'}
-                        </h1>
-                        <p className="text-[10px] font-bold uppercase tracking-tighter">Team Issue Sheet</p>
-                    </div>
+                <PrintContainer>
+                    <PrintHeader
+                        season={seasons.find(s => s._id === selectedSeason)?.name}
+                        location={`${printingTeam.placeName}, ${printingTeam.state}`}
+                        date={new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        subtitle="Team Issue Sheet"
+                        dateLabel="Issued Date"
+                    />
 
-                    {/* Compact Info Row */}
-                    <div className="flex justify-between items-end mb-6 border-b border-black pb-2">
-                        <div className="flex gap-6">
-                            <p><strong className="uppercase text-[10px] mr-2">Location:</strong> <span className="font-bold text-sm">{printingTeam.placeName}, {printingTeam.state}</span></p>
-                        </div>
-                        <div className="text-right">
-                            <p><strong className="uppercase text-[10px] mr-2">Issued Date:</strong> <span className="font-bold">{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></p>
-                        </div>
-                    </div>
+                    <TeamMembersSection members={printingTeam.members} />
 
-                    {/* Members List */}
-                    <section className="mb-6">
-                        <h2 className="text-[10px] font-bold mb-2 uppercase tracking-widest">Team Members</h2>
-                        <table className="w-full border-collapse border border-black">
+                    {/* Receipt Books Issue Section */}
+                    <section className="mb-6 avoid-break">
+                        <div className="flex justify-between items-end border-b border-black mb-2">
+                            <h3 className="text-[11pt] font-bold uppercase tracking-wide inline-block">Receipt Books Issued</h3>
+                            <span className="text-[9pt] font-bold text-slate-500 uppercase pb-0.5">{printingTeam.receiptBooks?.length || 0} Books Assigned</span>
+                        </div>
+                        <table className="w-full text-[10pt]">
                             <thead>
-                                <tr className="bg-slate-50">
-                                    <th className="border border-black p-1 text-left text-[9px] uppercase">Name</th>
-                                    <th className="border border-black p-1 text-center text-[9px] uppercase w-16">Class</th>
-                                    <th className="border border-black p-1 text-left text-[9px] uppercase w-32">Phone</th>
+                                <tr className="bg-slate-50 font-bold border-b border-black">
+                                    <th className="text-center w-18">Book #</th>
+                                    <th className="text-center w-28">Starts</th>
+                                    <th className="text-center w-28">Ends</th>
+                                    <th className="">Collection Entry (₹)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {printingTeam.members.map((m, i) => (
-                                    <tr key={i} className="h-7">
-                                        <td className="border border-black px-2 uppercase font-bold">{m.name}</td>
-                                        <td className="border border-black text-center">{m.class || '---'}</td>
-                                        <td className="border border-black px-2 font-mono">{m.phone}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </section>
-
-                    {/* Compact Receipt Books Table */}
-                    <section className="mb-6">
-                        <h2 className="text-[10px] font-bold mb-2 uppercase tracking-widest">Receipt Books Issued</h2>
-                        <table className="w-full border-collapse border border-black table-fixed">
-                            <thead className="display-table-header-group">
-                                <tr className="bg-slate-50">
-                                    <th className="border border-black p-1 text-[9px] uppercase w-16">Book #</th>
-                                    <th className="border border-black p-1 text-[9px] uppercase w-24">Starts</th>
-                                    <th className="border border-black p-1 text-[9px] uppercase w-24">Ends</th>
-                                    <th className="border border-black p-1 text-[9px] uppercase">Collection Entry (₹)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {printingTeam.receiptBooks?.slice().sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber)).map((b, i) => (
-                                    <tr key={i} className="h-10 page-break-inside-avoid">
-                                        <td className="border border-black text-center font-black text-base">{b.bookNumber}</td>
-                                        <td className="border border-black text-center text-slate-600">{(b.bookNumber * 50) - 49}</td>
-                                        <td className="border border-black text-center underline italic opacity-30 text-[9px]"></td>
-                                        <td className="border border-black text-center font-bold px-4 tracking-tighter italic opacity-40"> </td>
-                                    </tr>
-                                ))}
-                                <tr className="h-12 bg-slate-50 page-break-inside-avoid">
-                                    <td colSpan="3" className="border border-black pr-4 text-right font-black uppercase tracking-widest text-[10px]">Total Collection Amount:</td>
-                                    <td className="border border-black p-2 font-bold text-lg">₹ </td>
+                                {printingTeam.receiptBooks
+                                    ?.slice()
+                                    .sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber))
+                                    .map((b, i) => (
+                                        <tr key={i} className="h-10 avoid-break">
+                                            <td className="text-center font-bold text-lg">{b.bookNumber}</td>
+                                            <td className="text-center text-slate-600">{(b.bookNumber * 50) - 49}</td>
+                                            <td className="text-center text-slate-300 italic text-[9pt]"></td>
+                                            <td className="text-center text-slate-300 italic text-[9pt]"></td>
+                                        </tr>
+                                    ))}
+                                <tr className="bg-slate-50 font-bold border-t-2 border-black h-12">
+                                    <td colSpan="3" className="text-right uppercase text-[9pt] pr-4 tracking-tight">Total Collection Amount:</td>
+                                    <td className="text-left px-4 text-lg">₹ </td>
                                 </tr>
                             </tbody>
                         </table>
                     </section>
 
-                    {/* Financial Summary Row */}
-                    <div className="flex justify-between items-center p-3 border border-black rounded-sm mb-4 bg-slate-50">
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Advance Disbursement (Already Given):</span>
-                        <span className="text-xl font-black">₹ {(printingTeam.advanceAmount || 0).toLocaleString()}</span>
-                    </div>
+                    {/* Advance Summary */}
+                    <div className="avoid-break mt-6">
+                        <div className="flex justify-between items-center p-3 border-2 border-black mb-4 bg-slate-50">
+                            <span className="text-[10pt] font-black uppercase tracking-tight">Advance Disbursement (Already Given)</span>
+                            <span className="text-xl font-black">₹ {(printingTeam.advanceAmount || 0).toLocaleString()}</span>
+                        </div>
 
-                    {/* Footnote */}
-                    <div className="border-t border-dotted border-slate-300 pt-4 text-center text-[8px] text-slate-400 font-bold uppercase tracking-[0.3em]">
-                        Auto-Generated Issue Sheet • Verify Book Ranges Before Collection
+                        <PrintFooter />
                     </div>
-                </div>
+                </PrintContainer>
             )}
         </div>
     );

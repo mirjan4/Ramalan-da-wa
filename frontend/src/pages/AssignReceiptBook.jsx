@@ -18,7 +18,8 @@ export default function AssignReceiptBook() {
       // Fetch Team Data
       teamService.getById(selectedTeamId).then(res => {
         if (res.data.receiptBooks && res.data.receiptBooks.length > 0) {
-          setReceiptBooks(res.data.receiptBooks);
+          const sortedBooks = [...res.data.receiptBooks].sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber));
+          setReceiptBooks(sortedBooks);
         } else {
           setReceiptBooks([{ bookNumber: '', startPage: '', endPage: '' }]);
         }
@@ -116,7 +117,7 @@ export default function AssignReceiptBook() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="glass-card p-8 border-none bg-white">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Book Details</h2>
+              <h2 className="text-xl font-bold text-slate-800">Book Details ({receiptBooks.length})</h2>
               <div className="flex gap-2">
                 {receiptBooks.length > 0 && (
                   <button
