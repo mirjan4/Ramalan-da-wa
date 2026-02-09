@@ -51,36 +51,33 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/field-data', fieldDataRoutes);
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI;
+// MongoDB Connection via Global Cache (Vercel/Serverless Safe)
+import dbConnect from './lib/dbConnect.js';
 
-if (!MONGODB_URI) {
-    console.error('CRITICAL: MONGODB_URI is not defined!');
-}
+const PORT = process.env.PORT || 5000;
 
-mongoose.connect(MONGODB_URI)
+dbConnect()
     .then(async () => {
-        console.log('--- MongoDB Connected ---');
+        console.log('--- MongoDB Connected (Cached) ---');
+
         // Seed admin if empty
-        try {
-            const count = await Admin.countDocuments();
-            if (count === 0) {
-                const admin = new Admin({
-                    username: process.env.ADMIN_USERNAME || 'admin',
-                    password: process.env.ADMIN_PASSWORD || 'admin123',
-                });
-                await admin.save();
-                console.log('Default admin seeded.');
-            }
-        } catch (err) {
-            console.error('Seeding error:', err.message);
+        const count = await Admin.countDocuments();
+        if (count === 0) {
+            const admin = new Admin({
+                username: process.env.ADMIN_USERNAME || 'admin',
+                password: process.env.ADMIN_PASSWORD || 'admin123',
+            });
+            await admin.save();
+            console.log('Default admin seeded.');
         }
+
+        app.listen(PORT, () => {
+            console.log(`Server listening on port ${PORT}`);
+        });
     })
     .catch((err) => {
         console.error('--- MongoDB Connection FAILED ---');
         console.error('Reason:', err.message);
     });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-});
+export default app; // Export for Vercel
