@@ -246,7 +246,7 @@ export default function FieldDataList() {
                             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Field Data Collection</h1>
                             <p className="text-slate-500 font-medium text-sm md:text-base">
                                 {activeSeason ? activeSeason.name : 'Loading Season...'}
-                                {isAdmin && <span className="ml-2 text-indigo-600 font-bold">• {filteredData.length} entries</span>}
+                                <span className="ml-2 text-indigo-600 font-bold">• {filteredData.length} entries</span>
                             </p>
                         </div>
                     </div>
