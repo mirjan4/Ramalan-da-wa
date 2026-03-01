@@ -1,19 +1,169 @@
-import { useState, useEffect } from 'react';
-import { fieldDataService, seasonService } from '../services/api';
-import { MapPin, Plus, Search, FileText, Lock, Globe, Phone, User, Trash2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { fieldDataService, seasonService, userService } from '../services/api';
+import {
+    MapPin, Plus, Search, FileText, Lock, Globe, Phone, User, Users, Trash2,
+    LayoutGrid, List, ArrowUpDown, SortAsc, SortDesc, Filter,
+    BarChart2, TrendingUp, CheckCircle2, ClipboardList,
+    ChevronLeft, ChevronRight, AlertCircle, UserX, X
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { confirmDelete, confirmAction } from '../utils/swal';
 
 export default function FieldDataList() {
     const [fieldData, setFieldData] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeSeason, setActiveSeason] = useState(null);
+    const [viewType, setViewType] = useState('grid'); // 'grid' or 'report'
+    const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+    const [selectedTeam, setSelectedTeam] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showInactiveModal, setShowInactiveModal] = useState(false);
+    const itemsPerPage = 10;
     const navigate = useNavigate();
 
     // Check role to conditionally render features
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const isAdmin = currentUser.role === 'admin';
+
+    const filteredData = useMemo(() => {
+        return fieldData.filter(item => {
+            const matchesSearch = item.masjidName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.contactPerson?.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+            const itemUserId = item.createdBy?._id || item.createdBy?.username;
+            const matchesTeam = selectedTeam === 'all' || itemUserId === selectedTeam;
+
+            return matchesSearch && matchesTeam;
+        });
+    }, [fieldData, searchQuery, selectedTeam]);
+
+    // Graph Data: Entries per Team (Memoized)
+    const teamStats = useMemo(() => {
+        const statsMap = new Map();
+        filteredData.forEach(item => {
+            const name = item.createdBy?.displayName || item.createdBy?.username || 'Unknown';
+            statsMap.set(name, (statsMap.get(name) || 0) + 1);
+        });
+
+        return Array.from(statsMap.entries())
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
+    }, [filteredData]);
+
+    // Summary Statistics (Memoized based on filtered data)
+    const stats = useMemo(() => {
+        if (!isAdmin) return { totalEntries: 0, activeTeams: 0, inactiveCount: 0, totalTeams: 0, totalCollection: 0 };
+
+        const totalEntries = filteredData.length;
+
+        // 1. Get ONLY the "data_collector" users (exclude admins)
+        const teamUsers = allUsers.filter(u => u.role !== 'admin');
+        const totalTeams = teamUsers.length;
+
+        // 2. Identify which of these team users actually have entries
+        const activeUserIdsFromFieldData = new Set(
+            fieldData.map(item => String(item.createdBy?._id || item.createdBy?.username))
+        );
+
+        // Active Teams: Users who have at least one entry
+        const activeTeams = teamUsers.filter(u =>
+            activeUserIdsFromFieldData.has(String(u._id)) || activeUserIdsFromFieldData.has(String(u.username))
+        ).length;
+
+        // 3. Inactive Teams = Teams with zero collection records
+        const inactiveCount = totalTeams - activeTeams;
+
+        const totalCollection = filteredData.reduce((acc, item) => {
+            const val = parseFloat(String(item.yearsOfCollection || '').replace(/[^0-9.]/g, '') || 0);
+            return acc + (isNaN(val) ? 0 : val);
+        }, 0);
+
+        return { totalEntries, activeTeams, inactiveCount, totalTeams, totalCollection };
+    }, [filteredData, fieldData, allUsers, isAdmin]);
+
+    // Inactive Teams Detail (Memoized)
+    const inactiveTeamsDetail = useMemo(() => {
+        if (!isAdmin) return [];
+
+        const activeUserIds = new Set(
+            fieldData.map(item => String(item.createdBy?._id || item.createdBy?.username))
+        );
+
+        const teamUsers = allUsers.filter(u => u.role !== 'admin');
+
+        return teamUsers.filter(u =>
+            !activeUserIds.has(String(u._id)) && !activeUserIds.has(String(u.username))
+        ).map(u => ({
+            id: u._id,
+            name: u.displayName || u.username,
+            member: 'Team Member'
+        }));
+    }, [fieldData, allUsers, isAdmin]);
+
+    // Unique Teams/Users for Filter
+    const uniqueUsers = useMemo(() => {
+        const users = new Map();
+        fieldData.forEach(item => {
+            if (item.createdBy) {
+                const id = item.createdBy._id || item.createdBy.username;
+                const name = item.createdBy.displayName || item.createdBy.username;
+                users.set(id, name);
+            }
+        });
+        return Array.from(users.entries()).map(([id, name]) => ({ id, name }));
+    }, [fieldData]);
+
+    const sortedData = useMemo(() => {
+        const data = [...filteredData];
+        if (sortConfig.key) {
+            data.sort((a, b) => {
+                let aVal, bVal;
+
+                if (sortConfig.key === 'collection') {
+                    aVal = parseFloat(String(a.yearsOfCollection || '').replace(/[^0-9.]/g, '') || 0);
+                    bVal = parseFloat(String(b.yearsOfCollection || '').replace(/[^0-9.]/g, '') || 0);
+                } else if (sortConfig.key === 'createdAt') {
+                    aVal = new Date(a.createdAt || 0).getTime();
+                    bVal = new Date(b.createdAt || 0).getTime();
+                } else {
+                    aVal = a[sortConfig.key];
+                    bVal = b[sortConfig.key];
+                }
+
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return data;
+    }, [filteredData, sortConfig]);
+
+    // Pagination Logic
+    const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return sortedData.slice(start, start + itemsPerPage);
+    }, [sortedData, currentPage]);
+
+    // Reset pagination when filtering
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, selectedTeam]);
+
+    const handleSort = (key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const renderSortIcon = (key) => {
+        if (sortConfig.key !== key) return <ArrowUpDown size={14} className="opacity-30" />;
+        return sortConfig.direction === 'asc' ? <SortAsc size={14} className="text-indigo-600" /> : <SortDesc size={14} className="text-indigo-600" />;
+    };
 
     useEffect(() => {
         fetchInitialData();
@@ -23,33 +173,20 @@ export default function FieldDataList() {
         setLoading(true);
         try {
             const seasonRes = await seasonService.getActive();
+            const sid = seasonRes.data._id;
             setActiveSeason(seasonRes.data);
 
-            // Fetch data for the active season
-            const dataRes = await fieldDataService.getAll(seasonRes.data._id);
+            const [dataRes, usersRes] = await Promise.all([
+                fieldDataService.getAll(sid),
+                userService.getAll()
+            ]);
+
             setFieldData(dataRes.data);
+            setAllUsers(usersRes.data);
         } catch (err) {
             console.error("Failed to fetch data:", err);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleLockSeason = async (isLocked) => {
-        const confirmed = await confirmAction({
-            title: isLocked ? "Lock Season Data?" : "Unlock Season Data?",
-            text: `Are you sure you want to ${isLocked ? 'LOCK' : 'UNLOCK'} all field data for this season? This affects editing capabilities for all members.`,
-            confirmText: isLocked ? "Lock All" : "Unlock All",
-            variant: isLocked ? "warning" : "info"
-        });
-
-        if (confirmed) {
-            try {
-                await fieldDataService.lockBySeason(activeSeason._id, isLocked);
-                fetchInitialData();
-            } catch (err) {
-                alert('Failed to update lock status');
-            }
         }
     };
 
@@ -71,8 +208,7 @@ export default function FieldDataList() {
     };
 
     const handleExport = () => {
-        // Simple CSV Export
-        const headers = ["Masjid / Shop Name", "Place", "District", "Contact Name", "Phone", "Designation", "Years of Collection", "Remarks", "Created By"];
+        const headers = ["Masjid / Shop Name", "Place", "Land Mark", "Contact Name", "Phone", "Designation", " Collection", "Remarks", "Created By"];
         const csvContent = [
             headers.join(","),
             ...fieldData.map(item => [
@@ -97,148 +233,457 @@ export default function FieldDataList() {
         link.click();
     };
 
-    const filteredData = fieldData.filter(item =>
-        item.masjidName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.contactPerson?.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
-                        <MapPin size={24} />
+            <div className="flex flex-col gap-6 mb-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                            <MapPin size={24} />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Field Data Collection</h1>
+                            <p className="text-slate-500 font-medium text-sm md:text-base">
+                                {activeSeason ? activeSeason.name : 'Loading Season...'}
+                                {isAdmin && <span className="ml-2 text-indigo-600 font-bold">• {filteredData.length} entries</span>}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Field Data Collection</h1>
-                        <p className="text-slate-500 font-medium text-sm md:text-base">
-                            {activeSeason ? activeSeason.name : 'Loading Season...'}
-                            {isAdmin && <span className="ml-2 text-indigo-600">• {filteredData.length} entries</span>}
-                        </p>
+
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto self-end md:self-center">
+                        <button
+                            onClick={() => navigate('/field-data/new')}
+                            className="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2 py-2.5 px-6 shadow-indigo-100"
+                        >
+                            <Plus size={18} /> <span className="font-bold">Add New</span>
+                        </button>
+
+                        {isAdmin && (
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setViewType(viewType === 'grid' ? 'report' : 'grid')}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm border ${viewType === 'report'
+                                        ? 'bg-slate-900 text-white border-slate-900 group'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    title={viewType === 'grid' ? "Switch to Report View" : "Switch to Grid View"}
+                                >
+                                    {viewType === 'grid' ? <List size={18} /> : <LayoutGrid size={18} />}
+                                    <span className="hidden lg:inline">{viewType === 'grid' ? "Detailed Report" : "Back to Grid"}</span>
+                                </button>
+                                <button
+                                    onClick={handleExport}
+                                    className="p-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-all shadow-sm active:scale-95"
+                                    title="Export CSV"
+                                >
+                                    <FileText size={18} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <div className="flex flex-col md:flex-row gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Search masjid / shop, place..."
-                            className="input-field pl-10 py-2.5"
+                            placeholder="Find collections by masjid, shop, or location name..."
+                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium text-slate-700 placeholder:text-slate-400"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
-                    <button
-                        onClick={() => navigate('/field-data/new')}
-                        className="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2 py-2.5"
-                    >
-                        <Plus size={18} /> <span className="hidden sm:inline">Add New</span>
-                    </button>
-
                     {isAdmin && (
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleExport}
-                                className="p-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
-                                title="Export CSV"
+                        <div className="relative md:w-72">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-indigo-500 pointer-events-none">
+                                <Filter size={16} />
+                                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Team</span>
+                            </div>
+                            <select
+                                value={selectedTeam}
+                                onChange={(e) => setSelectedTeam(e.target.value)}
+                                className="w-full pl-24 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold text-slate-700 cursor-pointer appearance-none"
                             >
-                                <FileText size={18} />
-                            </button>
-                            <button
-                                onClick={() => handleLockSeason(!fieldData[0]?.isLocked)}
-                                className={`p-3 border rounded-xl transition-colors ${fieldData[0]?.isLocked
-                                    ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
-                                    : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600'
-                                    }`}
-                                title={fieldData[0]?.isLocked ? "Unlock Season Data" : "Lock Season Data"}
-                            >
-                                <Lock size={18} />
-                            </button>
+                                <option value="all">All Records</option>
+                                {uniqueUsers.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
+                                <ArrowUpDown size={14} />
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Data Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {loading ? (
-                    <div className="col-span-full py-20 text-center text-slate-400 italic">Loading data...</div>
-                ) : filteredData.length === 0 ? (
-                    <div className="col-span-full py-20 text-center text-slate-400 italic">
-                        {searchQuery ? 'No matches found.' : 'No data collected yet. Click "Add New" to start.'}
-                    </div>
-                ) : (
-                    filteredData.map((item) => (
+            {/* Admin Summary Section */}
+            {isAdmin && stats && (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                            <div className="flex justify-between items-start mb-3 relative z-10">
+                                <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
+                                    <BarChart2 size={20} />
+                                </span>
+                            </div>
+                            <p className="text-2xl font-black text-slate-900 leading-none relative z-10">{stats.totalEntries}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Total Entries</p>
+                            <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                                <BarChart2 size={80} />
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                            <div className="flex justify-between items-start mb-3 relative z-10">
+                                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                                    <Users size={20} />
+                                </span>
+                            </div>
+                            <div className="flex items-baseline gap-2 relative z-10">
+                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.activeTeams}</p>
+                                <span className="text-[12px] font-bold text-slate-400">/ {stats.totalTeams}</span>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Active Teams</p>
+                            <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                                <Users size={80} />
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                            <div className="flex justify-between items-start mb-3 relative z-10">
+                                <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
+                                    <TrendingUp size={20} />
+                                </span>
+                            </div>
+                            <div className="flex items-baseline gap-1 relative z-10">
+                                <span className="text-xs font-bold text-slate-400">₹</span>
+                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.totalCollection.toLocaleString()}</p>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Total Collection Estimate</p>
+                            <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                                <TrendingUp size={80} />
+                            </div>
+                        </div>
+
                         <div
-                            key={item._id}
-                            onClick={() => navigate(`/field-data/edit/${item._id}`)}
-                            className="glass-card p-5 bg-white hover:shadow-xl transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-indigo-500"
+                            onClick={() => stats.inactiveCount > 0 && setShowInactiveModal(true)}
+                            className={`bg-white p-6 rounded-2xl border shadow-sm transition-all overflow-hidden relative ${stats.inactiveCount > 0 ? 'border-amber-200 hover:shadow-md hover:border-amber-300 cursor-pointer group' : 'border-slate-200 opacity-50'}`}
                         >
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="flex justify-between items-start mb-3 relative z-10">
+                                <span className={`p-2 rounded-xl transition-colors duration-300 ${stats.inactiveCount > 0 ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white' : 'bg-slate-50 text-slate-400'}`}>
+                                    <UserX size={20} />
+                                </span>
+                            </div>
+                            <p className={`text-2xl font-black leading-none relative z-10 ${stats.inactiveCount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{stats.inactiveCount}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Inactive Teams</p>
+                            {stats.inactiveCount > 0 && (
+                                <div className="absolute top-1 right-1">
+                                    <span className="flex h-2 w-2 relative">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Warning Alert for Inactive Teams */}
+                    {stats.inactiveCount > 0 && (
+                        <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2 bg-amber-100 text-amber-600 rounded-xl">
+                                    <AlertCircle size={24} />
+                                </div>
                                 <div>
-                                    <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                                        {item.masjidName}
-                                    </h3>
-                                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mt-1">
-                                        <MapPin size={12} />
-                                        <span className="uppercase tracking-wide">{item.place}</span>
+                                    <h4 className="text-sm font-black text-amber-900 uppercase">Attention Required</h4>
+                                    <p className="text-xs text-amber-700 font-medium">{stats.inactiveCount} teams {stats.inactiveCount === 1 ? 'has' : 'have'} not submitted any field data yet.</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Content Area */}
+            {viewType === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {loading ? (
+                        <div className="col-span-full py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading field collections...</div>
+                    ) : filteredData.length === 0 ? (
+                        <div className="col-span-full py-20 text-center text-slate-400 bg-white rounded-3xl border border-slate-100 flex flex-col items-center gap-4">
+                            <ClipboardList size={48} className="text-slate-200" />
+                            <p className="font-bold uppercase tracking-widest text-xs">
+                                {searchQuery ? 'No matching entries found.' : 'No data collected yet for this season.'}
+                            </p>
+                        </div>
+                    ) : (
+                        filteredData.map((item) => (
+                            <div
+                                key={item._id}
+                                onClick={() => navigate(`/field-data/edit/${item._id}`)}
+                                className="glass-card p-5 bg-white hover:shadow-xl transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-indigo-500 rounded-2xl border border-slate-100 shadow-sm"
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                                            {item.masjidName}
+                                        </h3>
+                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mt-1">
+                                            <MapPin size={12} />
+                                            <span className="uppercase tracking-wide">{item.place}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {isAdmin && (
+                                            <button
+                                                onClick={(e) => handleDeleteClick(e, item._id)}
+                                                className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Delete Entry"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {item.isLocked && <Lock size={14} className="text-rose-400" />}
-                                    {isAdmin && (
-                                        <button
-                                            onClick={(e) => handleDeleteClick(e, item._id)}
-                                            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                                            title="Delete Entry"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+
+                                <div className="space-y-2 mb-4">
+                                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <User size={14} className="text-indigo-500" />
+                                            <span className="text-xs font-bold text-slate-700">{item.contactPerson.name}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-[11px] text-slate-500 pl-6">
+                                            {item.contactPerson.designation && <span className="uppercase font-medium">{item.contactPerson.designation}</span>}
+                                            <div className="flex items-center gap-1">
+                                                <Phone size={10} /> {item.contactPerson.phone}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {item.yearsOfCollection && (
+                                        <div className="text-xs text-slate-600 bg-amber-50 px-2 py-1 rounded inline-block font-medium w-full text-center border border-amber-100">
+                                            <span className="font-bold">{item.yearsOfCollection}</span>  Collection
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between pt-3 border-t border-slate-50 text-[10px] text-slate-400 font-medium">
+                                    <div className="flex items-center gap-1">
+                                        <span>Collected by:</span>
+                                        <span className="text-slate-600 font-bold">
+                                            {item.createdBy?.displayName || item.createdBy?.username || 'Unknown'}
+                                        </span>
+                                    </div>
+                                    {item.location?.latitude && (
+                                        <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                            <Globe size={10} /> GPS
+                                        </div>
                                     )}
                                 </div>
                             </div>
-
-                            <div className="space-y-2 mb-4">
-                                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <User size={14} className="text-indigo-500" />
-                                        <span className="text-xs font-bold text-slate-700">{item.contactPerson.name}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-[11px] text-slate-500 pl-6">
-                                        {item.contactPerson.designation && <span className="uppercase font-medium">{item.contactPerson.designation}</span>}
-                                        <div className="flex items-center gap-1">
-                                            <Phone size={10} /> {item.contactPerson.phone}
-                                        </div>
-                                    </div>
-                                </div>
-                                {item.yearsOfCollection && (
-                                    <div className="text-xs text-slate-600 bg-amber-50 px-2 py-1 rounded inline-block font-medium w-full text-center border border-amber-100">
-                                        <span className="font-bold">{item.yearsOfCollection}</span> Years of Collection
-                                    </div>
-                                )}
+                        ))
+                    )}
+                </div>
+            ) : (
+                <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                <BarChart2 size={18} />
                             </div>
-
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 text-[10px] text-slate-400 font-medium">
-                                <div className="flex items-center gap-1">
-                                    <span>Collected by:</span>
-                                    <span className="text-slate-600 font-bold">
-                                        {item.createdBy?.displayName || item.createdBy?.username || 'Unknown'}
-                                    </span>
-                                </div>
-                                {item.location?.latitude && (
-                                    <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                        <Globe size={10} /> GPS
-                                    </div>
-                                )}
+                            <div>
+                                <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight">Team Contribution Audit</h2>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Entries per collection team member</p>
                             </div>
                         </div>
-                    ))
-                )}
-            </div>
+
+                        <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            {teamStats.length === 0 ? (
+                                <p className="text-center py-10 text-slate-400 text-xs italic font-medium">No performance data available for current filters.</p>
+                            ) : (
+                                teamStats.map((team, idx) => {
+                                    const maxCount = teamStats[0]?.count || 1;
+                                    const percentage = (team.count / maxCount) * 100;
+
+                                    return (
+                                        <div key={idx} className="group">
+                                            <div className="flex justify-between items-center mb-1.5 px-1">
+                                                <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
+                                                    {team.name}
+                                                </span>
+                                                <span className="text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md min-w-[30px] text-center">
+                                                    {team.count}
+                                                </span>
+                                            </div>
+                                            <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100/50">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                                                    style={{ width: `${percentage}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[1000px]">
+                                <thead className="sticky top-0 z-10">
+                                    <tr className="bg-slate-900 text-white text-[10px] uppercase font-black tracking-widest whitespace-nowrap">
+                                        <th className="px-6 py-5">Team / Created By</th>
+                                        <th className="px-6 py-5">Masjid / Shop Name</th>
+                                        <th className="px-6 py-5">Place</th>
+                                        <th className="px-6 py-5">Contact Person</th>
+                                        <th className="px-6 py-5">Phone</th>
+                                        <th className="px-6 py-5 text-right cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('collection')}>
+                                            <div className="flex items-center justify-end gap-2">
+                                                Collection {renderSortIcon('collection')}
+                                            </div>
+                                        </th>
+                                        <th className="px-6 py-5 text-center cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('createdAt')}>
+                                            <div className="flex items-center justify-center gap-2">
+                                                Created Date {renderSortIcon('createdAt')}
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {paginatedData.map((item) => (
+                                        <tr
+                                            key={item._id}
+                                            className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                                            onClick={() => navigate(`/field-data/edit/${item._id}`)}
+                                        >
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-indigo-600">{item.createdBy?.displayName || item.createdBy?.username}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Team Member</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{item.masjidName}</td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded uppercase tracking-wide">{item.place}</span>
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-slate-700">{item.contactPerson.name}</td>
+                                            <td className="px-6 py-4 font-mono text-xs">{item.contactPerson.phone}</td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="font-black text-slate-900">
+                                                    {item.yearsOfCollection ? `₹ ${item.yearsOfCollection}` : '---'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center text-xs text-slate-500 font-medium">
+                                                {new Date(item.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {totalPages > 1 && (
+                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 bg-slate-50 border-t border-slate-100">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    Showing <span className="text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-slate-900">{Math.min(currentPage * itemsPerPage, sortedData.length)}</span> of <span className="text-slate-900">{sortedData.length}</span> entries
+                                </p>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+
+                                    <div className="flex items-center gap-1">
+                                        {[...Array(totalPages)].map((_, i) => {
+                                            const page = i + 1;
+                                            if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                                                return (
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => setCurrentPage(page)}
+                                                        className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === page
+                                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+                                                            }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                );
+                                            } else if ((page === 2 && currentPage > 3) || (page === totalPages - 1 && currentPage < totalPages - 2)) {
+                                                return <span key={page} className="text-slate-300">...</span>;
+                                            }
+                                            return null;
+                                        })}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Inactive Teams Modal */}
+            {showInactiveModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl">
+                                    <UserX size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Inactive Teams</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{inactiveTeamsDetail.length} Pending Submissions</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowInactiveModal(false)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors focus:outline-none">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar bg-slate-50/30">
+                            <div className="space-y-3">
+                                {inactiveTeamsDetail.map((team, idx) => (
+                                    <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-100 hover:shadow-md transition-all group">
+                                        <div className="h-12 w-12 shrink-0 rounded-full bg-slate-50 text-slate-600 border border-slate-100 flex items-center justify-center font-black uppercase text-sm group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors shadow-sm">
+                                            {team.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{team.name}</h3>
+                                            <div className="flex items-center gap-1.5 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                <User size={12} /> {team.member}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-white border-t border-slate-100">
+                            <button onClick={() => setShowInactiveModal(false)} className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 transition-all focus:outline-none focus:ring-4 focus:ring-slate-100">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

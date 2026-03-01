@@ -29,6 +29,7 @@ export default function Sidebar({ setUser, isOpen, onClose }) {
   const navItems = role === 'admin' ? [
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/' },
     { icon: <Users size={20} />, label: 'Team Management', path: '/teams' },
+    { icon: <BookOpen size={20} />, label: 'Book  Report', path: '/book-report' },
     { icon: <Scale size={20} />, label: 'Settlement & Collection', path: '/collection' },
     { icon: <FileText size={20} />, label: 'Reports', path: '/reports' },
     { icon: <MapPin size={20} />, label: 'Field Data', path: '/field-data' },

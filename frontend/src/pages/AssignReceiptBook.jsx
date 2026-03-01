@@ -13,6 +13,10 @@ export default function AssignReceiptBook() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleBookReport = () => {
+    navigate('/book-report');
+  };
+
   useEffect(() => {
     if (selectedTeamId) {
       // Fetch Team Data
@@ -106,8 +110,10 @@ export default function AssignReceiptBook() {
         <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg">
           <BookPlus size={24} />
         </div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Assign Receipt Books</h1>
+        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Assign Receipt Books</h2>
+        <button onClick={() => navigate('/book-report')} className="btn-primary bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold">Book Report</button>
       </div>
+
 
       <div className="glass-card p-8 border-none bg-white mb-8">
         <TeamSelect selectedId={selectedTeamId} onSelect={setSelectedTeamId} filterLocked={true} />

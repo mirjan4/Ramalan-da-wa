@@ -218,9 +218,9 @@ export default function FieldDataForm() {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-1">
-                                <label className="label">Name *</label>
+                                <label className="label">Name </label>
                                 <input
-                                    required
+                                    
                                     className="input-field"
                                     placeholder="Full Name"
                                     value={formData.contactPerson.name}
@@ -237,9 +237,9 @@ export default function FieldDataForm() {
                                 />
                             </div>
                             <div>
-                                <label className="label">Phone Number *</label>
+                                <label className="label">Phone Number </label>
                                 <input
-                                    required
+                                    
                                     type="tel"
                                     className="input-field"
                                     placeholder="10-digit mobile"

@@ -15,6 +15,7 @@ import TeamTools from './pages/TeamTools';
 import Settings from './pages/Settings';
 import FieldDataList from './pages/FieldDataList';
 import FieldDataForm from './pages/FieldDataForm';
+import BookReport from './pages/BookReport';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -58,6 +59,7 @@ function App() {
                                 <Route path="/assign-book" element={<AssignReceiptBook />} />
                                 <Route path="/collection" element={<CollectionEntry />} />
                                 <Route path="/reports" element={<Reports />} />
+                                <Route path="/book-report" element={<BookReport />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/field-data" element={<FieldDataList />} />
                                 <Route path="/field-data/new" element={<FieldDataForm />} />
