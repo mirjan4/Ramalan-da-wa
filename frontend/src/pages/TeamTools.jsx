@@ -39,7 +39,7 @@ export default function TeamTools() {
             // Header Style
             const headerRow = sheet.getRow(1);
             headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
-            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } }; // Indigo-600
+            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5FA8' } }; // Markaz Primary Blue
             headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
             headerRow.height = 30;
 
@@ -139,7 +139,7 @@ export default function TeamTools() {
         // Header Style
         const headerRow = sheet.getRow(1);
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5FA8' } };
 
         sampleData.forEach(d => sheet.addRow(d));
 
@@ -289,56 +289,56 @@ export default function TeamTools() {
         <div className="p-4 md:p-8 max-w-5xl mx-auto">
             <button
                 onClick={() => navigate('/teams')}
-                className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold text-sm mb-6 transition-colors"
+                className="flex items-center gap-2 text-slate-400 hover:text-[#1E5FA8] font-bold text-xs mb-8 transition-colors group"
             >
-                <ArrowLeft size={16} /> Back to Teams
+                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> BACK TO MANAGEMENT
             </button>
 
-            <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
+            <div className="flex items-center gap-4 mb-10">
+                <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
                     <FileSpreadsheet size={24} />
                 </div>
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Data Tools</h1>
-                    <p className="text-slate-500 mt-1">Advanced Excel Import/Export for Teams.</p>
+                    <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Data Management Tools</h1>
+                    <p className="text-sm font-medium text-slate-500 mt-1">High-volume deployment synchronization via Excel</p>
                 </div>
             </div>
 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Export Section */}
-                <div className="glass-card p-8 border-none bg-white">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-800">
-                        <Download className="text-indigo-600" size={20} /> Export Excel
+                <div className="glass-card p-8 border-l-4 border-l-[#1E5FA8] bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-[#0F3B66]">
+                        <Download className="text-[#1E5FA8]" size={20} /> Field Unit Export
                     </h2>
-                    <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-                        Download formatted Excel sheet showing Teams and their Members in grouped rows (Merged cells).
+                    <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                        Generate a comprehensive audit-ready spreadsheet of all current deployment units and assigned members.
                     </p>
                     <button
                         onClick={handleExport}
                         disabled={loading || !activeSeason}
-                        className="btn-secondary w-full py-3 flex justify-center items-center gap-2 hover:bg-slate-50"
+                        className="btn-secondary w-full flex justify-center items-center gap-2 h-12"
                     >
                         {loading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
-                        Download .xlsx
+                        Download .xlsx Registry
                     </button>
                 </div>
 
                 {/* Import Section */}
-                <div className="glass-card p-8 border-none bg-white">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-800">
-                        <Upload className="text-indigo-600" size={20} /> Import Excel
+                <div className="glass-card p-8 border-l-4 border-l-[#10B981] bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-[#0F3B66]">
+                        <Upload className="text-[#10B981]" size={18} /> Field Unit Import
                     </h2>
                     <p className="text-sm text-slate-500 mb-4 leading-relaxed">
-                        Upload Excel file with grouped data (Merged Place/State cells supported).
+                        Batch initialize deployment units via Excel. Supports member grouping and book assignments.
                     </p>
 
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-5">
                         <button
                             onClick={handleImportTemplate}
-                            className="text-xs font-bold text-indigo-600 hover:underline text-left"
+                            className="text-[10px] font-black text-[#1E5FA8] hover:text-[#0F3B66] text-left uppercase tracking-widest transition-colors flex items-center gap-1.5"
                         >
-                            Download Excel Template
+                            <FileSpreadsheet size={14} /> Download Institutional Template
                         </button>
 
                         <div className="relative">
@@ -347,11 +347,11 @@ export default function TeamTools() {
                                 accept=".xlsx, .xls"
                                 onChange={handleImport}
                                 disabled={loading || !activeSeason}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             />
-                            <div className="btn-primary w-full py-3 flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 cursor-pointer">
+                            <div className="btn-primary w-full flex justify-center items-center gap-2 h-12">
                                 {loading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-                                Select Excel File
+                                Upload Deployment Data
                             </div>
                         </div>
                     </div>

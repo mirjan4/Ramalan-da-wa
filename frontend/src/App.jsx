@@ -26,7 +26,7 @@ function App() {
 
     return (
         <Router>
-            <div className="min-h-screen flex bg-slate-50 relative overflow-x-hidden">
+            <div className="min-h-screen flex bg-slate-50 relative overflow-x-hidden print:bg-white print:p-0 print:m-0">
                 {user && (
                     <>
                         {/* Mobile Overlay */}
@@ -40,12 +40,17 @@ function App() {
                             setUser={setUser}
                             isOpen={sidebarOpen}
                             onClose={() => setSidebarOpen(false)}
+                            className="print:hidden"
                         />
                     </>
                 )}
                 <div className="flex-1 flex flex-col min-w-0">
-                    {user && <Navbar user={user} onMenuClick={toggleSidebar} />}
-                    <main className="flex-1 overflow-y-auto w-full">
+                    {user && (
+                        <div className="print:hidden">
+                            <Navbar user={user} onMenuClick={toggleSidebar} />
+                        </div>
+                    )}
+                    <main className="flex-1 overflow-y-auto w-full print:overflow-visible">
                         <Routes>
                             <Route path="/login" element={user ? <Navigate to="/" /> : <Login setUser={setUser} />} />
 

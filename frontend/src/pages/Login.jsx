@@ -33,26 +33,26 @@ export default function Login({ setUser }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-indigo-50/30 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#E6F0FA]/30 p-4">
       <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
         <div className="text-center mb-10">
-          <div className="inline-flex p-4 rounded-3xl bg-indigo-600 text-white shadow-2xl mb-4 rotate-3 transform">
+          <div className="inline-flex p-4 rounded-[2rem] bg-[#1E5FA8] text-white shadow-2xl shadow-blue-900/20 mb-6 -rotate-2 transform">
             <LogIn size={32} />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight"> Login Page </h1>
-          <p className="text-slate-500 mt-2 font-medium"> Markaz Ramalan Da’wa </p>
+          <h1 className="text-3xl font-bold text-[#0F3B66] tracking-tight">Login Page</h1>
+          <p className="text-slate-500 mt-2 font-medium">Ramalan Da'wah {new Date().getFullYear()}</p>
         </div>
 
-        <div className="glass-card p-10 border-none bg-white">
+        <div className="glass-card p-10 border-none bg-white shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="label">Username</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Username</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><User size={20} /></span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"><User size={18} /></span>
                 <input
                   required
-                  className="input-field pl-10"
-                  placeholder="admin"
+                  className="input-field pl-12 h-12"
+                  placeholder="Username"
                   value={formData.username}
                   onChange={e => setFormData({ ...formData, username: e.target.value })}
                 />
@@ -60,13 +60,13 @@ export default function Login({ setUser }) {
             </div>
 
             <div>
-              <label className="label">Password</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Password</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Lock size={20} /></span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"><Lock size={18} /></span>
                 <input
                   required
                   type={showPassword ? "text" : "password"}
-                  className="input-field pl-10 pr-10"
+                  className="input-field pl-12 pr-12 h-12"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -74,15 +74,15 @@ export default function Login({ setUser }) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-[#1E5FA8] focus:outline-none transition-colors"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="p-3 bg-rose-50 border border-rose-100 text-rose-600 text-sm font-bold rounded-lg text-center animate-shake">
+              <div className="p-3 bg-rose-50 border border-rose-100 text-[#EF4444] text-[11px] font-bold rounded-xl text-center animate-shake uppercase tracking-tight">
                 {error}
               </div>
             )}
@@ -90,15 +90,15 @@ export default function Login({ setUser }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-4 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"
+              className="w-full btn-primary h-12 shadow-lg shadow-blue-900/10 text-sm tracking-wide"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? 'Validating Credentials...' : 'Login'}
             </button>
           </form>
         </div>
 
-        <p className="mt-8 text-center text-slate-400 text-sm font-medium">
-          Markaz Ramalan Da’wa
+        <p className="mt-8 text-center text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
+          Markaz Ramalan Da’wa © {new Date().getFullYear()}
         </p>
       </div>
     </div>

@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
         const token = jwt.sign(
-            { id: admin._id, role: admin.role },
+            { id: admin._id, role: admin.role || 'admin' },
             process.env.JWT_SECRET || 'fallback_secret',
             { expiresIn: '1d' }
         );
@@ -60,7 +60,7 @@ const authenticateToken = (req, res, next) => {
     if (!token) return res.status(401).json({ message: 'Access denied' });
 
     jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', (err, user) => {
-        if (err) return res.status(403).json({ message: 'Invalid token' });
+        if (err) return res.status(401).json({ message: 'Invalid token' });
         req.user = user;
         next();
     });

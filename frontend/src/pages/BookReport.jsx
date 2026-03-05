@@ -74,26 +74,49 @@ export default function BookReport() {
 
         teams.forEach(team => {
             if (team.receiptBooks) {
+                const isSettled = team.isLocked; // team.isLocked is our audit settled source of truth
+
                 team.receiptBooks.forEach(book => {
-                    const usedPages = (book.usedEndPage && book.usedStartPage)
-                        ? (Number(book.usedEndPage) - Number(book.usedStartPage) + 1) : 0;
-                    const totalPagesInBook = (book.endPage - book.startPage + 1);
-                    const remainingPages = totalPagesInBook - usedPages;
+                    const usedStart = Number(book.usedStartPage) || 0;
+                    const usedEnd = Number(book.usedEndPage) || 0;
+                    const usedPages = (usedStart > 0 && usedEnd > 0) ? Math.max(0, usedEnd - usedStart + 1) : 0;
+
+                    const bookStart = Number(book.startPage) || 0;
+                    const bookEnd = Number(book.endPage) || 0;
+                    const totalPagesInBook = Math.max(0, bookEnd - bookStart + 1);
+                    const remainingPages = Math.max(0, totalPagesInBook - usedPages);
+                    const collected = Number(book.collectedAmount) || 0;
 
                     let status = 'unused';
-                    if (bookNumberCounts[book.bookNumber.toString()] > 1) status = 'conflict';
-                    else if (usedPages === totalPagesInBook) status = 'completed';
-                    else if (usedPages > 0 || Number(book.collectedAmount) > 0) status = 'used';
+                    // 1. Conflict Check (highest priority for audit)
+                    if (bookNumberCounts[String(book.bookNumber)] > 1) {
+                        status = 'conflict';
+                    }
+                    // 2. Running Check (Team not yet settled)
+                    else if (!isSettled) {
+                        status = 'running';
+                    }
+                    // 3. Settled Logic
+                    else {
+                        if (usedPages === 0 || collected <= 0) {
+                            status = 'unused';
+                        } else if (remainingPages === 0) {
+                            status = 'completed';
+                        } else {
+                            status = 'used';
+                        }
+                    }
 
                     books.push({
                         ...book,
-                        teamName: team.placeName + ', ' + team.state,
+                        teamName: String(team.placeName) + ', ' + String(team.state),
                         placeName: team.placeName,
                         state: team.state,
-                        teamId: team._id,
+                        teamId: String(team._id),
                         usedPages,
                         remainingPages,
                         totalPages: totalPagesInBook,
+                        collectedAmount: collected,
                         status
                     });
                 });
@@ -154,27 +177,28 @@ export default function BookReport() {
     // Statistics
     const stats = useMemo(() => {
         const total = filteredBooks.length;
-        const used = filteredBooks.filter(b => b.status === 'used' || b.status === 'completed').length;
+        const running = filteredBooks.filter(b => b.status === 'running').length;
+        const used = filteredBooks.filter(b => b.status === 'used').length;
         const unused = filteredBooks.filter(b => b.status === 'unused').length;
         const completed = filteredBooks.filter(b => b.status === 'completed').length;
         const amount = filteredBooks.reduce((acc, b) => acc + (Number(b.collectedAmount) || 0), 0);
         const remaining = filteredBooks.reduce((acc, b) => acc + (Number(b.remainingPages) || 0), 0);
         const uniqueTeams = new Set(filteredBooks.map(b => b.teamId)).size;
 
-        return { total, used, unused, completed, amount, remaining, uniqueTeams };
+        return { total, running, used, unused, completed, amount, remaining, uniqueTeams };
     }, [filteredBooks]);
 
     const handleExportCSV = () => {
         const headers = ['Team Name', 'State', 'Book Number', 'Start Page', 'End Page', 'Used Pages', 'Remaining', 'Collected', 'Status'];
         const rows = sortedBooks.map(b => [
-            b.placeName, 
-            b.state, 
-            b.bookNumber, 
-            b.startPage, 
-            b.endPage, 
-            b.usedPages, 
-            b.remainingPages, 
-            b.collectedAmount, 
+            b.placeName,
+            b.state,
+            b.bookNumber,
+            b.startPage,
+            b.endPage,
+            b.usedPages,
+            b.remainingPages,
+            b.collectedAmount,
             b.status.toUpperCase()
         ]);
 
@@ -200,10 +224,11 @@ export default function BookReport() {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'completed': return 'bg-emerald-50 text-emerald-700 border-emerald-100 ring-emerald-500/10';
-            case 'used': return 'bg-blue-50 text-blue-700 border-blue-100 ring-blue-500/10';
-            case 'unused': return 'bg-slate-50 text-slate-600 border-slate-100 ring-slate-500/10';
-            case 'conflict': return 'bg-rose-50 text-rose-700 border-rose-100 ring-rose-500/10';
+            case 'completed': return 'bg-emerald-50 text-[#10B981] border-emerald-100';
+            case 'used': return 'bg-amber-50 text-[#F59E0B] border-amber-100';
+            case 'unused': return 'bg-slate-50 text-slate-400 border-slate-100';
+            case 'running': return 'bg-[#E6F0FA] text-[#1E5FA8] border-[#A3C4E8]';
+            case 'conflict': return 'bg-rose-50 text-[#EF4444] border-rose-100';
             default: return 'bg-slate-50 text-slate-400 border-slate-100';
         }
     };
@@ -212,28 +237,30 @@ export default function BookReport() {
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen bg-[#f8fafc]">
             {/* Header Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 print:hidden">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        <BookOpen className="text-indigo-600 w-8 h-8" />
-                        Receipt Book Audit Report
-                    </h1>
-                    <p className="text-slate-500 mt-1 font-medium italic">Detailed record of book assignments and utilization status</p>
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
+                        <BookOpen size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Receipt Book Audit</h1>
+                        <p className="text-sm font-medium text-slate-500 mt-1">Institutional record of book assignments and utilization</p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                        className="btn-secondary flex items-center gap-2"
                     >
                         <Download size={18} />
-                        <span className="hidden sm:inline">Export CSV</span>
+                        <span className="hidden sm:inline">Export Audit</span>
                     </button>
                     <button
                         onClick={() => navigate('/assign-book')}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95"
+                        className="btn-primary flex items-center gap-2"
                     >
                         <BookPlus size={18} />
-                        <span className="hidden sm:inline">Assign Book</span>
+                        <span className="hidden sm:inline">Assign Books</span>
                     </button>
                 </div>
             </div>
@@ -248,11 +275,11 @@ export default function BookReport() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Season Selector */}
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-400 ml-1">Reporting Season</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Reporting Season</label>
                             <select
                                 value={selectedSeason}
                                 onChange={(e) => setSelectedSeason(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
+                                className="input-field"
                             >
                                 {seasons.map(s => (
                                     <option key={s._id} value={s._id}>{s.name} {s.isActive ? '(Active)' : ''}</option>
@@ -262,13 +289,13 @@ export default function BookReport() {
 
                         {/* Team Filter */}
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-400 ml-1">Filter by Team</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Team Filter</label>
                             <select
                                 value={filters.teamId}
                                 onChange={(e) => setFilters({ ...filters, teamId: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
+                                className="input-field"
                             >
-                                <option value="">All Teams ({teams.length})</option>
+                                <option value="">All Field Units</option>
                                 {teams.map(t => (
                                     <option key={t._id} value={t._id}>{t.placeName}, {t.state}</option>
                                 ))}
@@ -277,30 +304,31 @@ export default function BookReport() {
 
                         {/* Status Filter */}
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-400 ml-1">Book Status</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Audit Status</label>
                             <select
                                 value={filters.status}
                                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
+                                className="input-field"
                             >
-                                <option value="all">All Statuses</option>
-                                <option value="used">Partially Used / Active</option>
-                                <option value="unused">Unused Books</option>
-                                <option value="completed">Fully Completed (50 Pages)</option>
+                                <option value="all">All Books</option>
+                                <option value="running">🔄 Running</option>
+                                <option value="unused">⚪ Unused</option>
+                                <option value="used">🟡 Partial</option>
+                                <option value="completed">🟢 Complete</option>
                             </select>
                         </div>
 
                         {/* Search */}
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-400 ml-1">Search Database</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Identity Search</label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                 <input
                                     type="text"
                                     placeholder="Book # or Team..."
                                     value={filters.searchPath}
                                     onChange={(e) => setFilters({ ...filters, searchPath: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-700"
+                                    className="input-field pl-10"
                                 />
                             </div>
                         </div>
@@ -309,68 +337,36 @@ export default function BookReport() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-3">
-                        <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
-                            <Users size={20} />
-                        </span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900 leading-none">{stats.uniqueTeams}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total Teams</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 mb-10">
+                <div className="bg-white p-5 rounded-2xl border-l-4 border-l-[#1E5FA8] shadow-sm hover:shadow-md transition-all group">
+                    <p className="text-2xl font-black text-[#0F3B66] leading-none">{stats.total}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <BookOpen size={12} className="text-[#1E5FA8]" /> Total Audit Book
+                    </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-3">
-                        <span className="p-2 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
-                            <BookOpen size={20} />
-                        </span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900 leading-none">{stats.total}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Books Assigned</p>
+                <div className="bg-white p-5 rounded-2xl border-l-4 border-l-[#10B981] shadow-sm hover:shadow-md transition-all group">
+                    <p className="text-2xl font-black text-[#0F3B66] leading-none">{stats.completed}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <CheckCircle2 size={12} className="text-[#10B981]" /> Fully Completed
+                    </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-3">
-                        <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
-                            <CheckCircle2 size={20} />
-                        </span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900 leading-none">{stats.used}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Used (Active)</p>
+                <div className="bg-white p-5 rounded-2xl border-l-4 border-l-[#F59E0B] shadow-sm hover:shadow-md transition-all group">
+                    <p className="text-2xl font-black text-[#0F3B66] leading-none">{stats.used}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <Layers size={12} className="text-[#F59E0B]" /> Partially Used
+                    </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-3">
-                        <span className="p-2 bg-slate-50 text-slate-400 rounded-xl group-hover:bg-slate-500 group-hover:text-white transition-colors duration-300">
-                            <ClipboardList size={20} />
-                        </span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900 leading-none">{stats.unused}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Unused Count</p>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-3">
-                        <span className="p-2 bg-amber-50 text-amber-600 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-colors duration-300">
-                            <TrendingUp size={20} />
-                        </span>
-                    </div>
+                <div className="bg-white p-5 rounded-2xl border-l-4 border-l-[#1E5FA8]/30 shadow-sm hover:shadow-md transition-all group">
                     <div className="flex items-baseline gap-1">
                         <span className="text-xs font-bold text-slate-400">₹</span>
-                        <p className="text-2xl font-black text-slate-900 leading-none">{stats.amount.toLocaleString()}</p>
+                        <p className="text-2xl font-black text-[#0F3B66] leading-none">{stats.amount.toLocaleString()}</p>
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total Collection</p>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-3">
-                        <span className="p-2 bg-rose-50 text-rose-600 rounded-xl group-hover:bg-rose-600 group-hover:text-white transition-colors duration-300">
-                            <Layers size={20} />
-                        </span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900 leading-none">{stats.remaining}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Remaining Pages</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <TrendingUp size={12} className="text-[#1E5FA8]" /> Total Collection
+                    </p>
                 </div>
             </div>
 
@@ -379,34 +375,34 @@ export default function BookReport() {
                 <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead className="sticky top-0 z-10">
-                            <tr className="bg-slate-900 text-white text-[10px] uppercase font-black tracking-widest">
-                                <th className="px-6 py-5 cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('teamName')}>
+                            <tr className="bg-[#0F3B66] text-white text-[10px] uppercase font-bold tracking-widest">
+                                <th className="px-6 py-4 cursor-pointer hover:bg-[#1E5FA8] transition-colors group" onClick={() => handleSort('teamName')}>
                                     <div className="flex items-center gap-2">
-                                        Team / Location {renderSortIcon('teamName')}
+                                        Field Unit {renderSortIcon('teamName')}
                                     </div>
                                 </th>
-                                <th className="px-6 py-5 cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('bookNumber')}>
+                                <th className="px-6 py-4 cursor-pointer hover:bg-[#1E5FA8] transition-colors group" onClick={() => handleSort('bookNumber')}>
                                     <div className="flex items-center gap-2">
-                                        Book # {renderSortIcon('bookNumber')}
+                                        Book Identifier {renderSortIcon('bookNumber')}
                                     </div>
                                 </th>
-                                <th className="px-6 py-5">Range (Pgs)</th>
-                                <th className="px-6 py-5 text-center cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('usedPages')}>
+                                <th className="px-6 py-4">Page Range</th>
+                                <th className="px-6 py-4 text-center cursor-pointer hover:bg-[#1E5FA8] transition-colors group" onClick={() => handleSort('usedPages')}>
                                     <div className="flex items-center justify-center gap-2">
                                         Used {renderSortIcon('usedPages')}
                                     </div>
                                 </th>
-                                <th className="px-6 py-5 text-center cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('remainingPages')}>
+                                <th className="px-6 py-4 text-center cursor-pointer hover:bg-[#1E5FA8] transition-colors group" onClick={() => handleSort('remainingPages')}>
                                     <div className="flex items-center justify-center gap-2">
-                                        Rem. {renderSortIcon('remainingPages')}
+                                        Unused {renderSortIcon('remainingPages')}
                                     </div>
                                 </th>
-                                <th className="px-6 py-5 text-right cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('collectedAmount')}>
+                                <th className="px-6 py-4 text-right cursor-pointer hover:bg-[#1E5FA8] transition-colors group" onClick={() => handleSort('collectedAmount')}>
                                     <div className="flex items-center justify-end gap-2">
-                                        Collection Amount {renderSortIcon('collectedAmount')}
+                                        Net Collection {renderSortIcon('collectedAmount')}
                                     </div>
                                 </th>
-                                <th className="px-6 py-5 text-center">Status</th>
+                                <th className="px-6 py-4 text-center">Audit Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -414,7 +410,7 @@ export default function BookReport() {
                                 <tr>
                                     <td colSpan="7" className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-2">
-                                            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                            <div className="w-12 h-12 border-4 border-[#1E5FA8] border-t-transparent rounded-full animate-spin"></div>
                                             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-4">Generating Audit Data...</p>
                                         </div>
                                     </td>
@@ -433,7 +429,7 @@ export default function BookReport() {
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Assigned Unit</p>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="font-mono font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded text-sm">#{book.bookNumber}</span>
+                                        <span className="font-mono font-black text-[#1E5FA8] bg-[#E6F0FA] px-2 py-1 rounded text-sm">#{book.bookNumber}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2 text-slate-600 font-bold text-xs bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg w-fit">
@@ -448,7 +444,7 @@ export default function BookReport() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className={`font-black text-sm ${book.remainingPages < book.totalPages ? 'text-indigo-600' : 'text-slate-300'}`}>
+                                        <span className={`font-black text-sm ${book.remainingPages < book.totalPages ? 'text-[#1E5FA8]' : 'text-slate-300'}`}>
                                             {book.remainingPages}
                                         </span>
                                     </td>
@@ -478,17 +474,17 @@ export default function BookReport() {
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-all font-bold"
+                                className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 disabled:opacity-30 hover:bg-[#E6F0FA] transition-all"
                             >
                                 <ChevronLeft size={18} />
                             </button>
-                            <div className="flex items-center px-4 font-black text-xs text-indigo-600">
+                            <div className="flex items-center px-4 font-black text-xs text-[#1E5FA8]">
                                 Page {currentPage} of {totalPages}
                             </div>
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 disabled:opacity-30 hover:bg-slate-50 transition-all font-bold"
+                                className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 disabled:opacity-30 hover:bg-[#E6F0FA] transition-all"
                             >
                                 <ChevronRight size={18} />
                             </button>

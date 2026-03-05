@@ -29,65 +29,67 @@ export default function Navbar({ user, onMenuClick }) {
     const isDataCollector = user?.role === 'data_collector';
 
     return (
-        <header className="h-20 bg-white border-b border-slate-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20 backdrop-blur-sm bg-white/80">
-            <div className="flex items-center gap-4 flex-1 max-w-xl">
-                <button onClick={onMenuClick} className="lg:hidden p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
-                    <Menu size={24} />
+        <header className="h-16 bg-white border-b border-slate-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20 transition-shadow">
+            <div className="flex items-center gap-4 flex-1">
+                <button onClick={onMenuClick} className="lg:hidden p-2 text-slate-500 hover:text-[#1E5FA8] hover:bg-[#E6F0FA] rounded-xl transition-colors">
+                    <Menu size={22} />
                 </button>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-6">
+            <div className="flex items-center gap-1 sm:gap-4">
                 {!isDataCollector && (
                     <button
                         onClick={() => navigate('/season')}
-                        className="flex items-center gap-2 p-2 px-3 sm:px-4 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all font-bold text-xs uppercase tracking-widest"
-                        title="Change Season"
+                        className="flex items-center gap-2 p-2 px-4 text-[#0F3B66] hover:text-[#1E5FA8] hover:bg-[#E6F0FA] rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest border border-transparent hover:border-[#1E5FA8]/20"
+                        title="Deploy Season"
                     >
-                        <Calendar size={18} />
-                        <span className="hidden sm:inline">Season</span>
+                        <Calendar size={16} />
+                        <span className="hidden sm:inline">Active Season</span>
                     </button>
                 )}
 
-                <div className="hidden sm:block h-8 w-[1px] bg-slate-100 mx-1"></div>
+                <div className="hidden sm:block h-8 w-[1px] bg-slate-100 mx-2"></div>
 
-                <div className="relative pl-2" ref={profileRef}>
+                <div className="relative" ref={profileRef}>
                     <div
-                        className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none"
+                        className="flex items-center gap-3 cursor-pointer select-none p-1.5 pr-2 hover:bg-slate-50 rounded-2xl transition-all duration-300 border border-transparent hover:border-slate-100"
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                     >
-                        <div className="text-right hidden sm:block">
-                            <p className="text-sm font-black text-slate-900 leading-tight capitalize">{user?.username || 'Admin'}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                {isDataCollector ? 'Field Officer' : 'Office Admin'}
-                            </p>
+                        <div className="w-8 h-8 bg-[#1E5FA8] text-white rounded-xl flex items-center justify-center font-bold shadow-sm shadow-blue-900/10">
+                            <User size={18} />
                         </div>
-                        <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center font-bold shadow-sm ring-2 ring-white hover:bg-indigo-200 transition-colors">
-                            <User size={20} />
+                        <div className="text-left hidden sm:block">
+                            <p className="text-[11px] font-black text-[#0F3B66] leading-tight uppercase tracking-tight">{user?.username || 'Admin'}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                {isDataCollector ? 'Field Envoy' : 'Admin'}
+                            </p>
                         </div>
                     </div>
 
                     {isProfileOpen && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1 animate-in fade-in zoom-in duration-200">
-                            <div className="px-4 py-3 border-b border-slate-50 sm:hidden">
-                                <p className="text-sm font-bold text-slate-900">{user?.username || 'Admin'}</p>
-                                <p className="text-xs text-slate-500">{isDataCollector ? 'Field Officer' : 'Office Admin'}</p>
+                        <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="px-5 py-3 border-b border-slate-50 sm:hidden">
+                                <p className="text-[11px] font-black text-[#0F3B66] uppercase">{user?.username || 'Admin'}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{isDataCollector ? 'Field Envoy' : 'Administrative Chief'}</p>
                             </div>
 
-                            {!isDataCollector && (
-                                <button
-                                    onClick={() => { setIsProfileOpen(false); navigate('/settings'); }}
-                                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2 transition-colors"
-                                >
-                                    <Settings size={16} /> Settings
-                                </button>
-                            )}
+                            <div className="px-2">
+                                {!isDataCollector && (
+                                    <button
+                                        onClick={() => { setIsProfileOpen(false); navigate('/settings'); }}
+                                        className="w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 hover:bg-[#E6F0FA] hover:text-[#1E5FA8] rounded-xl flex items-center gap-3 transition-all uppercase tracking-tight"
+                                    >
+                                        <Settings size={16} /> Settings
+                                    </button>
+                                )}
 
-                            <button
-                                onClick={handleLogout}
-                                className="w-full text-left px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
-                            >
-                                <LogOut size={16} /> Logout
-                            </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-4 py-2.5 text-[11px] font-bold text-[#EF4444] hover:bg-rose-50 rounded-xl flex items-center gap-3 transition-all uppercase tracking-tight"
+                                >
+                                    <LogOut size={16} /> Logout
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

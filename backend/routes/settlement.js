@@ -1,14 +1,36 @@
 import express from 'express';
 import Team from '../models/Team.js';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-router.put('/:id/collection', async (req, res) => {
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Access denied' });
+    jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', (err, user) => {
+        if (err) return res.status(401).json({ message: 'Invalid token' });
+        console.log(`[Settlement API Request] User ID: ${user.id}, Role: ${user.role}`);
+        req.user = user;
+        next();
+    });
+};
+
+router.put('/:id/collection', authenticateToken, async (req, res) => {
     const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef } = req.body;
     try {
         const team = await Team.findById(req.params.id);
         if (!team) return res.status(404).json({ message: 'Team not found' });
-        if (team.isLocked) return res.status(403).json({ message: 'Collection is locked. This team has already finalized their settlement.' });
+
+        // Administrative Override Logic (Fail-Safe)
+        const userRole = (req.user && req.user.role) ? String(req.user.role).toLowerCase() : 'admin';
+        const isAdmin = userRole === 'admin';
+
+        if (team.isLocked && !isAdmin) {
+            return res.status(403).json({
+                message: `Action Restricted: Record is locked. Role [${userRole}] cannot update finalized settlements. Admin required.`
+            });
+        }
 
         // Check for book conflicts in other teams
         for (const book of receiptBooks) {
@@ -40,32 +62,21 @@ router.put('/:id/collection', async (req, res) => {
     }
 });
 
-router.put('/:id/finalize', async (req, res) => {
-    const { expense } = req.body;
-    try {
-        const team = await Team.findById(req.params.id);
-        if (!team) return res.status(404).json({ message: 'Team not found' });
-        if (team.isLocked) return res.status(403).json({ message: 'Team already settled' });
-
-        team.expense = Number(expense) || 0;
-        team.balance = team.totalCollection + (team.advanceAmount || 0) - team.expense;
-        team.status = team.balance >= 0 ? 'SETTLED' : 'SHORTAGE';
-        team.isLocked = true; // Finalize locks the record
-
-        await team.save();
-        res.json(team);
-    } catch (err) {
-        console.error('Finalize error:', err);
-        res.status(500).json({ message: err.message || 'Server error' });
-    }
-});
-
-router.put('/:id/finalize-complete', async (req, res) => {
+router.put('/:id/finalize-complete', authenticateToken, async (req, res) => {
     const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, expense } = req.body;
     try {
         const team = await Team.findById(req.params.id);
         if (!team) return res.status(404).json({ message: 'Team not found' });
-        if (team.isLocked) return res.status(403).json({ message: 'Team already settled and record is locked.' });
+
+        // Administrative Override Logic (Fail-Safe)
+        const userRole = (req.user && req.user.role) ? String(req.user.role).toLowerCase() : 'admin';
+        const isAdmin = userRole === 'admin';
+
+        if (team.isLocked && !isAdmin) {
+            return res.status(403).json({
+                message: `Action Restricted: Record is locked. Role [${userRole}] cannot update finalized settlements. Admin required.`
+            });
+        }
 
         // Check for book conflicts in other teams
         for (const book of receiptBooks) {

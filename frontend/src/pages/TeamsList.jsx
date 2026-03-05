@@ -97,11 +97,12 @@ export default function TeamsList() {
             <div className="print:hidden">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                        <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
                             <Users size={24} />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Team Management</h1>
+                            <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Teams Management</h1>
+                            <p className="text-sm font-medium text-slate-500 mt-1">Organize field officers and assign collection books</p>
                         </div>
                     </div>
 
@@ -118,15 +119,15 @@ export default function TeamsList() {
                         </div>
                         <Link
                             to="/team-tools"
-                            className="btn-secondary flex items-center gap-2 mr-2"
+                            className="btn-secondary flex items-center gap-2"
                         >
-                            <Settings2 size={18} /> Import / Export
+                            <Settings2 size={18} /> Bulk Tools
                         </Link>
                         <Link
                             to="/add-team"
-                            className="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
+                            className="btn-primary flex items-center gap-2"
                         >
-                            <Plus size={18} /> New Team
+                            <Plus size={18} /> Create Team
                         </Link>
                     </div>
                 </div>
@@ -137,21 +138,21 @@ export default function TeamsList() {
                     ) : filteredTeams.length === 0 ? (
                         <div className="col-span-full py-20 text-center text-slate-400 italic font-medium">No teams found.</div>
                     ) : filteredTeams.map((team) => (
-                        <div key={team._id} className="glass-card p-6 border-none bg-white hover:shadow-2xl transition-all duration-300 group flex flex-col h-fit">
+                        <div key={team._id} className="glass-card p-6 border-none bg-white hover:shadow-xl transition-all duration-300 group flex flex-col h-fit">
                             {/* Header with Icon Buttons */}
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex-1 min-w-0 pr-4">
-                                    <div className="flex items-center gap-1.5 text-indigo-600 mb-0.5 opacity-80">
+                                    <div className="flex items-center gap-1.5 text-[#1E5FA8] mb-0.5 opacity-80">
                                         <MapPin size={12} />
                                         <span className="text-[10px] font-black uppercase tracking-widest">{team.state}</span>
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-900 leading-tight truncate">{team.placeName}</h3>
+                                    <h3 className="text-lg font-bold text-[#0F3B66] leading-tight truncate">{team.placeName}</h3>
                                 </div>
 
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => navigate(`/edit-team/${team._id}`)}
-                                        className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                                        className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-[#1E5FA8] hover:text-white hover:border-[#1E5FA8] transition-all shadow-sm"
                                         title="Edit Team"
                                     >
                                         <Edit3 size={18} />
@@ -162,7 +163,7 @@ export default function TeamsList() {
                                                 e.stopPropagation();
                                                 handleDeleteTeam(e, team._id, team.placeName);
                                             }}
-                                            className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all shadow-sm"
+                                            className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-[#EF4444] hover:text-white hover:border-[#EF4444] transition-all shadow-sm"
                                             title="Delete Team"
                                         >
                                             <Trash2 size={18} />
@@ -173,7 +174,7 @@ export default function TeamsList() {
                                             e.stopPropagation();
                                             handlePrintSheet(team);
                                         }}
-                                        className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm"
+                                        className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-[#10B981] hover:text-white hover:border-[#10B981] transition-all shadow-sm"
                                         title="Print Team Issue Sheet"
                                     >
                                         <Printer size={18} />
@@ -188,7 +189,7 @@ export default function TeamsList() {
                                 </div>
                                 <div className="space-y-2">
                                     {team.members.map((m, i) => (
-                                        <div key={i} className="flex justify-between items-center text-xs px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 font-bold text-slate-700 group-hover:border-indigo-50 transition-colors">
+                                        <div key={i} className="flex justify-between items-center text-xs px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 font-bold text-slate-700 group-hover:border-[#E6F0FA] transition-colors">
                                             <div className="flex flex-col">
                                                 <span>{m.name}</span>
                                                 <span className="text-[9px] font-normal text-slate-400">{m.phone}</span>
@@ -202,17 +203,16 @@ export default function TeamsList() {
                             </div>
 
                             {/* Books Section */}
-                            {/* Books Section */}
                             <div
                                 onClick={() => navigate(`/assign-book?teamId=${team._id}`)}
-                                className="pt-4 border-t border-slate-50 mt-auto cursor-pointer group/books hover:bg-indigo-50/30 -mx-6 px-6 -mb-6 pb-6 transition-all"
+                                className="pt-4 border-t border-slate-50 mt-auto cursor-pointer group/books hover:bg-[#E6F0FA]/40 -mx-6 px-6 -mb-6 pb-6 transition-all"
                                 title="Manage Receipt Books"
                             >
                                 <div className="flex justify-between items-center mb-2 mt-2">
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 group-hover/books:text-indigo-600 transition-colors">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 group-hover/books:text-[#1E5FA8] transition-colors">
                                         <BookOpen size={12} /> Receipt Books ({team.receiptBooks?.length || 0})
                                     </div>
-                                    <ArrowUpRight size={14} className="text-slate-300 group-hover/books:text-indigo-600 opacity-0 group-hover/books:opacity-100 transition-all transform group-hover/books:translate-x-1" />
+                                    <ArrowUpRight size={14} className="text-slate-300 group-hover/books:text-[#1E5FA8] opacity-0 group-hover/books:opacity-100 transition-all transform group-hover/books:translate-x-1" />
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {team.receiptBooks && team.receiptBooks.length > 0 ? (
@@ -220,7 +220,7 @@ export default function TeamsList() {
                                             .slice()
                                             .sort((a, b) => Number(a.bookNumber) - Number(b.bookNumber))
                                             .map((b, i) => (
-                                                <span key={i} className="px-2 py-1 bg-white border border-slate-200 group-hover/books:border-indigo-200 rounded text-[10px] font-bold text-slate-600 group-hover/books:text-indigo-700 transition-colors">
+                                                <span key={i} className="px-2 py-1 bg-white border border-slate-200 group-hover/books:border-[#A3C4E8] rounded text-[10px] font-bold text-slate-600 group-hover/books:text-[#1E5FA8] transition-colors">
                                                     {b.bookNumber}
                                                 </span>
                                             ))

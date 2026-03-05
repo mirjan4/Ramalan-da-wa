@@ -122,22 +122,22 @@ export default function FieldDataForm() {
         <div className="p-4 md:p-8 max-w-3xl mx-auto">
             <button
                 onClick={() => navigate('/field-data')}
-                className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold text-sm mb-6 transition-colors"
+                className="flex items-center gap-2 text-slate-500 hover:text-[#1E5FA8] font-bold text-sm mb-6 transition-colors"
             >
-                <ArrowLeft size={16} /> Back to List
+                <ArrowLeft size={16} /> Return to Registry
             </button>
 
             <div className="glass-card bg-white p-6 md:p-8 border-none shadow-xl">
                 <div className="flex justify-between items-start mb-8">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                            {isEditMode ? 'Edit Field Data' : 'New Entry'}
+                        <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">
+                            {isEditMode ? 'Modify Registry' : 'New Field Registry'}
                         </h1>
-                        <p className="text-slate-500 text-sm mt-1">
-                            {activeSeason?.name} • Please fill in all required details accurately.
+                        <p className="text-slate-500 text-sm mt-1 font-medium">
+                            Season {activeSeason?.name} • Accurate institutional record keeping
                         </p>
                     </div>
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <div className="p-3 bg-[#E6F0FA] text-[#1E5FA8] rounded-2xl shadow-sm">
                         <MapPin size={24} />
                     </div>
                 </div>
@@ -152,16 +152,16 @@ export default function FieldDataForm() {
 
                     {/* Location Section */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <Building2 size={14} /> Location Details
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
+                            <Building2 size={12} className="text-[#1E5FA8]" /> Location Parameters
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="label">Masjid / Shop Name *</label>
+                                <label className="label">Institution Name *</label>
                                 <input
                                     required
-                                    className="input-field font-bold"
-                                    placeholder="e.g. Town Juma Masjid"
+                                    className="input-field font-bold text-[#0F3B66]"
+                                    placeholder="e.g. Town Central Masjid"
                                     value={formData.masjidName}
                                     onChange={e => setFormData({ ...formData, masjidName: e.target.value })}
                                 />
@@ -188,23 +188,23 @@ export default function FieldDataForm() {
                         </div>
 
                         {/* GPS Module */}
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="text-xs text-slate-500 font-medium">
-                                <span className="block font-bold text-slate-700 mb-0.5">GPS Coordinates</span>
+                        <div className="p-4 bg-[#F8FAF8] rounded-2xl border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                <span className="block text-[#0F3B66] mb-1">GPS Coordinates</span>
                                 {formData.location.latitude ? (
-                                    <span className="font-mono text-emerald-600">
+                                    <span className="font-mono text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded">
                                         {Number(formData.location.latitude).toFixed(6)}, {Number(formData.location.longitude).toFixed(6)}
                                     </span>
-                                ) : 'Location not captured'}
+                                ) : <span className="text-slate-300">Awaiting Capture</span>}
                             </div>
                             <button
                                 type="button"
                                 onClick={handleGetLocation}
                                 disabled={fetchingLocation}
-                                className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 shadow-sm hover:shadow text-indigo-600 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 transition-all"
+                                className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 shadow-sm hover:border-[#1E5FA8] hover:text-[#1E5FA8] text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all"
                             >
                                 {fetchingLocation ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
-                                {formData.location.latitude ? 'Update GPS' : 'Capture GPS'}
+                                {formData.location.latitude ? 'Recalibrate GPS' : 'Capture Location'}
                             </button>
                         </div>
                     </div>
@@ -213,14 +213,14 @@ export default function FieldDataForm() {
 
                     {/* Contact Person Section */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <User size={14} /> Contact Person
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
+                            <User size={12} className="text-[#1E5FA8]" /> Primary Correspondent
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-1">
                                 <label className="label">Name </label>
                                 <input
-                                    
+
                                     className="input-field"
                                     placeholder="Full Name"
                                     value={formData.contactPerson.name}
@@ -239,7 +239,7 @@ export default function FieldDataForm() {
                             <div>
                                 <label className="label">Phone Number </label>
                                 <input
-                                    
+
                                     type="tel"
                                     className="input-field"
                                     placeholder="10-digit mobile"
@@ -254,12 +254,12 @@ export default function FieldDataForm() {
 
                     {/* Additional Info */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <FileText size={14} /> Details
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
+                            <FileText size={12} className="text-[#1E5FA8]" /> Historical Metadata
                         </h3>
                         <div className="grid grid-cols-1 gap-4">
                             <div>
-                                <label className="label"> Collection Done this years</label>
+                                <label className="label">Collection History (Years)</label>
                                 <input
                                     type="number"
                                     className="input-field"
@@ -285,17 +285,17 @@ export default function FieldDataForm() {
                         <button
                             type="button"
                             onClick={() => navigate('/field-data')}
-                            className="flex-1 py-4 btn-secondary text-slate-500 font-bold"
+                            className="flex-1 btn-secondary text-slate-500"
                         >
-                            Cancel
+                            Discard
                         </button>
                         <button
                             type="submit"
                             disabled={loading || (isEditMode && formData.isLocked)}
-                            className="flex-[2] py-4 btn-primary bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 text-lg flex items-center justify-center gap-2"
+                            className="flex-[2] btn-primary flex items-center justify-center gap-2"
                         >
                             {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                            {isEditMode ? 'Update Data' : 'Save Entry'}
+                            {isEditMode ? 'Authorize Update' : 'Finalize Entry'}
                         </button>
                     </div>
 

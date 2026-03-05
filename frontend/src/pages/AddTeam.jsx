@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { teamService, seasonService } from '../services/api';
-import { Plus, Trash2, UserPlus, MapPin, Globe, Save, Users } from 'lucide-react';
+import { Plus, Trash2, UserPlus, MapPin, Globe, Save, Users, Edit3 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MySwal } from '../utils/swal';
 
@@ -84,13 +84,16 @@ export default function AddTeam() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
-        <div className={`p-3 ${id ? 'bg-amber-600' : 'bg-indigo-600'} text-white rounded-2xl shadow-lg`}>
-          {id ? <Users size={24} /> : <Plus size={24} />}
+      <div className="flex items-center gap-4 mb-10">
+        <div className={`p-3 ${id ? 'bg-[#F59E0B]' : 'bg-[#1E5FA8]'} text-white rounded-2xl shadow-lg`}>
+          {id ? <Edit3 size={24} /> : <Plus size={24} />}
         </div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          {id ? 'Edit Team Details' : 'Create New Team'}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">
+            {id ? 'Modify Team Profile' : 'Register New Team'}
+          </h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">Configure field operational areas and personnel</p>
+        </div>
       </div>
 
       {(!activeSeason && !id) ? (
@@ -100,8 +103,8 @@ export default function AddTeam() {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="glass-card p-8 border-none bg-white">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
-              <MapPin className="text-indigo-600" size={20} /> Place Details
+            <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-[#0F3B66]">
+              <MapPin className="text-[#1E5FA8]" size={20} /> Operational Area Details
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -125,10 +128,10 @@ export default function AddTeam() {
                 />
               </div>
               <div>
-                <label className="label text-indigo-600">Initial Advance Amount (₹)</label>
+                <label className="label text-[#1E5FA8]">Initial Advance Amount (₹)</label>
                 <input
                   type="number"
-                  className="input-field border-indigo-100 bg-indigo-50/30 font-bold"
+                  className="input-field border-[#E6F0FA] bg-[#E6F0FA]/30 font-bold"
                   placeholder="0"
                   value={formData.advanceAmount}
                   onChange={e => setFormData({ ...formData, advanceAmount: Number(e.target.value) })}
@@ -139,11 +142,11 @@ export default function AddTeam() {
 
           <div className="glass-card p-8 border-none bg-white">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-                <UserPlus className="text-indigo-600" size={20} /> Team Members
+              <h2 className="text-lg font-bold flex items-center gap-2 text-[#0F3B66]">
+                <UserPlus className="text-[#1E5FA8]" size={20} /> Designated Field Officers
               </h2>
-              <button type="button" onClick={addMember} className="btn-secondary text-indigo-600 border-indigo-200 bg-indigo-50 flex items-center gap-2 text-sm">
-                <Plus size={16} /> Add Member
+              <button type="button" onClick={addMember} className="btn-secondary flex items-center gap-2 text-sm px-4">
+                <Plus size={16} /> Add Officer
               </button>
             </div>
 
@@ -190,10 +193,10 @@ export default function AddTeam() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 mt-10">
-            <button type="button" onClick={() => navigate('/')} className="btn-secondary px-8 py-3">Cancel</button>
-            <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2 px-10 py-3 shadow-indigo-200">
-              <Save size={18} /> {loading ? 'Saving...' : 'Create Team'}
+          <div className="flex justify-end gap-4 mt-6">
+            <button type="button" onClick={() => navigate('/teams')} className="btn-secondary px-8">Return</button>
+            <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2 px-10 shadow-sm">
+              <Save size={18} /> {loading ? 'Processing...' : (id ? 'Update Record' : 'Register Team')}
             </button>
           </div>
         </form>

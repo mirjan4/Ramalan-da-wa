@@ -162,7 +162,7 @@ export default function FieldDataList() {
 
     const renderSortIcon = (key) => {
         if (sortConfig.key !== key) return <ArrowUpDown size={14} className="opacity-30" />;
-        return sortConfig.direction === 'asc' ? <SortAsc size={14} className="text-indigo-600" /> : <SortDesc size={14} className="text-indigo-600" />;
+        return sortConfig.direction === 'asc' ? <SortAsc size={14} className="text-[#1E5FA8]" /> : <SortDesc size={14} className="text-[#1E5FA8]" />;
     };
 
     useEffect(() => {
@@ -239,14 +239,14 @@ export default function FieldDataList() {
             <div className="flex flex-col gap-6 mb-10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
+                        <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
                             <MapPin size={24} />
                         </div>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Field Data Collection</h1>
-                            <p className="text-slate-500 font-medium text-sm md:text-base">
-                                {activeSeason ? activeSeason.name : 'Loading Season...'}
-                                <span className="ml-2 text-indigo-600 font-bold">• {filteredData.length} entries</span>
+                            <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Field Data Operations</h1>
+                            <p className="text-sm font-medium text-slate-500 mt-1">
+                                Season {activeSeason ? activeSeason.name : '...'}
+                                <span className="ml-2 text-[#1E5FA8] font-bold">• {filteredData.length} records</span>
                             </p>
                         </div>
                     </div>
@@ -254,9 +254,9 @@ export default function FieldDataList() {
                     <div className="flex flex-wrap items-center gap-3 w-full md:w-auto self-end md:self-center">
                         <button
                             onClick={() => navigate('/field-data/new')}
-                            className="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2 py-2.5 px-6 shadow-indigo-100"
+                            className="btn-primary flex items-center gap-2 px-6"
                         >
-                            <Plus size={18} /> <span className="font-bold">Add New</span>
+                            <Plus size={18} /> <span className="font-bold">New Registry</span>
                         </button>
 
                         {isAdmin && (
@@ -264,18 +264,18 @@ export default function FieldDataList() {
                                 <button
                                     onClick={() => setViewType(viewType === 'grid' ? 'report' : 'grid')}
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm border ${viewType === 'report'
-                                        ? 'bg-slate-900 text-white border-slate-900 group'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                        ? 'bg-[#0F3B66] text-white border-[#0F3B66]'
+                                        : 'bg-white text-[#1E5FA8] border-slate-200 hover:bg-[#E6F0FA]'
                                         }`}
-                                    title={viewType === 'grid' ? "Switch to Report View" : "Switch to Grid View"}
+                                    title={viewType === 'grid' ? "Audit Report" : "Grid Explorer"}
                                 >
                                     {viewType === 'grid' ? <List size={18} /> : <LayoutGrid size={18} />}
-                                    <span className="hidden lg:inline">{viewType === 'grid' ? "Detailed Report" : "Back to Grid"}</span>
+                                    <span className="hidden lg:inline">{viewType === 'grid' ? "Registry Audit" : "Registry Grid"}</span>
                                 </button>
                                 <button
                                     onClick={handleExport}
-                                    className="p-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-all shadow-sm active:scale-95"
-                                    title="Export CSV"
+                                    className="btn-secondary p-3 text-slate-600"
+                                    title="Export Registry"
                                 >
                                     <FileText size={18} />
                                 </button>
@@ -284,30 +284,30 @@ export default function FieldDataList() {
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div className="flex flex-col md:flex-row gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-10">
                     <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Find collections by masjid, shop, or location name..."
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium text-slate-700 placeholder:text-slate-400"
+                            placeholder="Identify collections by institution or area identification..."
+                            className="input-field pl-12 h-12"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
                     {isAdmin && (
-                        <div className="relative md:w-72">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-indigo-500 pointer-events-none">
+                        <div className="relative md:w-80">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-[#1E5FA8] pointer-events-none">
                                 <Filter size={16} />
-                                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Team</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Unit</span>
                             </div>
                             <select
                                 value={selectedTeam}
                                 onChange={(e) => setSelectedTeam(e.target.value)}
-                                className="w-full pl-24 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold text-slate-700 cursor-pointer appearance-none"
+                                className="input-field pl-24 h-12 cursor-pointer appearance-none"
                             >
-                                <option value="all">All Records</option>
+                                <option value="all">All Field Units</option>
                                 {uniqueUsers.map(u => (
                                     <option key={u.id} value={u.id}>{u.name}</option>
                                 ))}
@@ -323,65 +323,56 @@ export default function FieldDataList() {
             {/* Admin Summary Section */}
             {isAdmin && stats && (
                 <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                        <div className="bg-white p-6 rounded-2xl border-l-4 border-l-[#1E5FA8] shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
                             <div className="flex justify-between items-start mb-3 relative z-10">
-                                <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
+                                <span className="p-2 bg-[#E6F0FA] text-[#1E5FA8] rounded-xl group-hover:bg-[#1E5FA8] group-hover:text-white transition-colors duration-300">
                                     <BarChart2 size={20} />
                                 </span>
                             </div>
-                            <p className="text-2xl font-black text-slate-900 leading-none relative z-10">{stats.totalEntries}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Total Entries</p>
-                            <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
-                                <BarChart2 size={80} />
-                            </div>
+                            <p className="text-2xl font-black text-[#0F3B66] leading-none relative z-10">{stats.totalEntries}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Total Submissions</p>
                         </div>
 
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                        <div className="bg-white p-6 rounded-2xl border-l-4 border-l-[#10B981] shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
                             <div className="flex justify-between items-start mb-3 relative z-10">
-                                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                                <span className="p-2 bg-emerald-50 text-[#10B981] rounded-xl group-hover:bg-[#10B981] group-hover:text-white transition-colors duration-300">
                                     <Users size={20} />
                                 </span>
                             </div>
                             <div className="flex items-baseline gap-2 relative z-10">
-                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.activeTeams}</p>
-                                <span className="text-[12px] font-bold text-slate-400">/ {stats.totalTeams}</span>
+                                <p className="text-2xl font-black text-[#0F3B66] leading-none">{stats.activeTeams}</p>
+                                <span className="text-[12px] font-bold text-slate-300">/ {stats.totalTeams}</span>
                             </div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Active Teams</p>
-                            <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
-                                <Users size={80} />
-                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Reporting Units</p>
                         </div>
 
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                        <div className="bg-white p-6 rounded-2xl border-l-4 border-l-[#1E5FA8]/30 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
                             <div className="flex justify-between items-start mb-3 relative z-10">
-                                <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
+                                <span className="p-2 bg-[#E6F0FA] text-[#1E5FA8] rounded-xl group-hover:bg-[#1E5FA8] group-hover:text-white transition-colors duration-300">
                                     <TrendingUp size={20} />
                                 </span>
                             </div>
                             <div className="flex items-baseline gap-1 relative z-10">
                                 <span className="text-xs font-bold text-slate-400">₹</span>
-                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.totalCollection.toLocaleString()}</p>
+                                <p className="text-2xl font-black text-[#0F3B66] leading-none">{stats.totalCollection.toLocaleString()}</p>
                             </div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Total Collection Estimate</p>
-                            <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
-                                <TrendingUp size={80} />
-                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Projected Collection</p>
                         </div>
 
                         <div
                             onClick={() => stats.inactiveCount > 0 && setShowInactiveModal(true)}
-                            className={`bg-white p-6 rounded-2xl border shadow-sm transition-all overflow-hidden relative ${stats.inactiveCount > 0 ? 'border-amber-200 hover:shadow-md hover:border-amber-300 cursor-pointer group' : 'border-slate-200 opacity-50'}`}
+                            className={`bg-white p-6 rounded-2xl border-l-4 shadow-sm transition-all overflow-hidden relative ${stats.inactiveCount > 0 ? 'border-l-[#F59E0B] hover:shadow-md cursor-pointer group' : 'border-l-slate-200 opacity-50'}`}
                         >
                             <div className="flex justify-between items-start mb-3 relative z-10">
-                                <span className={`p-2 rounded-xl transition-colors duration-300 ${stats.inactiveCount > 0 ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white' : 'bg-slate-50 text-slate-400'}`}>
+                                <span className={`p-2 rounded-xl transition-colors duration-300 ${stats.inactiveCount > 0 ? 'bg-amber-50 text-[#F59E0B] group-hover:bg-[#F59E0B] group-hover:text-white' : 'bg-slate-50 text-slate-400'}`}>
                                     <UserX size={20} />
                                 </span>
                             </div>
-                            <p className={`text-2xl font-black leading-none relative z-10 ${stats.inactiveCount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{stats.inactiveCount}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Inactive Teams</p>
+                            <p className={`text-2xl font-black leading-none relative z-10 ${stats.inactiveCount > 0 ? 'text-[#F59E0B]' : 'text-slate-400'}`}>{stats.inactiveCount}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Pending Units</p>
                             {stats.inactiveCount > 0 && (
-                                <div className="absolute top-1 right-1">
+                                <div className="absolute top-2 right-2">
                                     <span className="flex h-2 w-2 relative">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
@@ -426,11 +417,11 @@ export default function FieldDataList() {
                             <div
                                 key={item._id}
                                 onClick={() => navigate(`/field-data/edit/${item._id}`)}
-                                className="glass-card p-5 bg-white hover:shadow-xl transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-indigo-500 rounded-2xl border border-slate-100 shadow-sm"
+                                className="glass-card p-5 bg-white hover:shadow-xl transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-[#1E5FA8] rounded-2xl border border-slate-100 shadow-sm"
                             >
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
-                                        <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                                        <h3 className="font-bold text-[#0F3B66] line-clamp-1 group-hover:text-[#1E5FA8] transition-colors">
                                             {item.masjidName}
                                         </h3>
                                         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mt-1">
@@ -442,8 +433,8 @@ export default function FieldDataList() {
                                         {isAdmin && (
                                             <button
                                                 onClick={(e) => handleDeleteClick(e, item._id)}
-                                                className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                                                title="Delete Entry"
+                                                className="p-1.5 text-slate-300 hover:text-[#EF4444] hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Delete Record"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -452,10 +443,10 @@ export default function FieldDataList() {
                                 </div>
 
                                 <div className="space-y-2 mb-4">
-                                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                                    <div className="p-2.5 bg-[#F8FAF8] rounded-2xl border border-slate-50">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <User size={14} className="text-indigo-500" />
-                                            <span className="text-xs font-bold text-slate-700">{item.contactPerson.name}</span>
+                                            <User size={14} className="text-[#1E5FA8]" />
+                                            <span className="text-xs font-bold text-[#0F3B66]">{item.contactPerson.name}</span>
                                         </div>
                                         <div className="flex items-center justify-between text-[11px] text-slate-500 pl-6">
                                             {item.contactPerson.designation && <span className="uppercase font-medium">{item.contactPerson.designation}</span>}
@@ -465,8 +456,8 @@ export default function FieldDataList() {
                                         </div>
                                     </div>
                                     {item.yearsOfCollection && (
-                                        <div className="text-xs text-slate-600 bg-amber-50 px-2 py-1 rounded inline-block font-medium w-full text-center border border-amber-100">
-                                            <span className="font-bold">{item.yearsOfCollection}</span>  Collection
+                                        <div className="text-[11px] text-slate-500 bg-[#F1F5F9] px-2 py-1.5 rounded-xl font-bold w-full text-center border border-slate-100">
+                                            <span className="text-[#1E5FA8]">{item.yearsOfCollection}</span>  COLLECTION IDENTIFIED
                                         </div>
                                     )}
                                 </div>
@@ -492,12 +483,12 @@ export default function FieldDataList() {
                 <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <div className="flex items-center gap-2 mb-6">
-                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <div className="p-2 bg-[#E6F0FA] text-[#1E5FA8] rounded-lg">
                                 <BarChart2 size={18} />
                             </div>
                             <div>
-                                <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight">Team Contribution Audit</h2>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Entries per collection team member</p>
+                                <h2 className="text-sm font-bold text-[#0F3B66] uppercase tracking-tight">Deployment Performance Audit</h2>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Efficiency metrics per field unit member</p>
                             </div>
                         </div>
 
@@ -512,16 +503,16 @@ export default function FieldDataList() {
                                     return (
                                         <div key={idx} className="group">
                                             <div className="flex justify-between items-center mb-1.5 px-1">
-                                                <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
+                                                <span className="text-xs font-bold text-slate-500 group-hover:text-[#1E5FA8] transition-colors uppercase tracking-tight">
                                                     {team.name}
                                                 </span>
-                                                <span className="text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md min-w-[30px] text-center">
+                                                <span className="text-[10px] font-black text-[#0F3B66] bg-[#E6F0FA] px-2 py-0.5 rounded min-w-[30px] text-center">
                                                     {team.count}
                                                 </span>
                                             </div>
-                                            <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100/50">
+                                            <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
                                                 <div
-                                                    className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                                                    className="h-full bg-gradient-to-r from-[#1E5FA8] to-[#0F3B66] rounded-full transition-all duration-1000 ease-out shadow-sm"
                                                     style={{ width: `${percentage}%` }}
                                                 />
                                             </div>
@@ -536,20 +527,20 @@ export default function FieldDataList() {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[1000px]">
                                 <thead className="sticky top-0 z-10">
-                                    <tr className="bg-slate-900 text-white text-[10px] uppercase font-black tracking-widest whitespace-nowrap">
-                                        <th className="px-6 py-5">Team / Created By</th>
-                                        <th className="px-6 py-5">Masjid / Shop Name</th>
-                                        <th className="px-6 py-5">Place</th>
-                                        <th className="px-6 py-5">Contact Person</th>
-                                        <th className="px-6 py-5">Phone</th>
-                                        <th className="px-6 py-5 text-right cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('collection')}>
+                                    <tr className="bg-[#0F3B66] text-white text-[10px] uppercase font-bold tracking-widest whitespace-nowrap">
+                                        <th className="px-6 py-4">Reporting Unit</th>
+                                        <th className="px-6 py-4">Institution Identifier</th>
+                                        <th className="px-6 py-4">Sub-Area</th>
+                                        <th className="px-6 py-4">Primary Correspondent</th>
+                                        <th className="px-6 py-4">Mobile Identity</th>
+                                        <th className="px-6 py-4 text-right cursor-pointer hover:bg-[#1E5FA8] transition-colors group" onClick={() => handleSort('collection')}>
                                             <div className="flex items-center justify-end gap-2">
-                                                Collection {renderSortIcon('collection')}
+                                                Net Weight {renderSortIcon('collection')}
                                             </div>
                                         </th>
-                                        <th className="px-6 py-5 text-center cursor-pointer hover:bg-slate-800 transition-colors group" onClick={() => handleSort('createdAt')}>
+                                        <th className="px-6 py-4 text-center cursor-pointer hover:bg-[#1E5FA8] transition-colors group" onClick={() => handleSort('createdAt')}>
                                             <div className="flex items-center justify-center gap-2">
-                                                Created Date {renderSortIcon('createdAt')}
+                                                Authority Date {renderSortIcon('createdAt')}
                                             </div>
                                         </th>
                                     </tr>
@@ -563,11 +554,11 @@ export default function FieldDataList() {
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-indigo-600">{item.createdBy?.displayName || item.createdBy?.username}</span>
-                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Team Member</span>
+                                                    <span className="font-bold text-[#1E5FA8]">{item.createdBy?.displayName || item.createdBy?.username}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Team Envoy</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{item.masjidName}</td>
+                                            <td className="px-6 py-4 font-bold text-[#0F3B66] group-hover:text-[#1E5FA8] transition-colors">{item.masjidName}</td>
                                             <td className="px-6 py-4">
                                                 <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded uppercase tracking-wide">{item.place}</span>
                                             </td>
@@ -611,8 +602,8 @@ export default function FieldDataList() {
                                                         key={page}
                                                         onClick={() => setCurrentPage(page)}
                                                         className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === page
-                                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
-                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+                                                            ? 'bg-[#1E5FA8] text-white shadow-md'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-[#E6F0FA] hover:text-[#1E5FA8]'
                                                             }`}
                                                     >
                                                         {page}
@@ -662,13 +653,13 @@ export default function FieldDataList() {
                             <div className="space-y-3">
                                 {inactiveTeamsDetail.map((team, idx) => (
                                     <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-100 hover:shadow-md transition-all group">
-                                        <div className="h-12 w-12 shrink-0 rounded-full bg-slate-50 text-slate-600 border border-slate-100 flex items-center justify-center font-black uppercase text-sm group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-colors shadow-sm">
+                                        <div className="h-12 w-12 shrink-0 rounded-2xl bg-slate-50 text-[#1E5FA8] border border-slate-100 flex items-center justify-center font-black uppercase text-sm group-hover:bg-[#1E5FA8] group-hover:text-white group-hover:border-[#1E5FA8] transition-colors shadow-sm">
                                             {team.name.charAt(0)}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{team.name}</h3>
+                                            <h3 className="font-bold text-[#0F3B66] group-hover:text-[#1E5FA8] transition-colors">{team.name}</h3>
                                             <div className="flex items-center gap-1.5 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                <User size={12} /> {team.member}
+                                                <User size={12} className="text-[#1E5FA8]" /> Deployment Envoy
                                             </div>
                                         </div>
                                     </div>
