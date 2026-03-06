@@ -10,11 +10,13 @@
     --color-success: #10b981;
     --color-danger: #ef4444;
     --color-warning: #f59e0b;
+    --color-slate-150: #ebf0f5;
 }
 
 @layer base {
     html {
         font-size: 15px;
+        scroll-behavior: smooth;
     }
 
     body {

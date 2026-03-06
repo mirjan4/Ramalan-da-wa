@@ -241,7 +241,7 @@ export default function Settings() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200">
+            <div id="report-summary" className="flex flex-wrap gap-2 mb-8 border-b border-slate-200">
                 {!currentUser.forcePasswordChange && (
                     <button
                         onClick={() => setActiveTab('profile')}
@@ -288,7 +288,7 @@ export default function Settings() {
 
             {/* Profile Settings Tab */}
             {activeTab === 'profile' && (
-                <div className="glass-card p-8 border-none bg-white max-w-2xl">
+                <div id="report-table" className="glass-card p-8 border-none bg-white max-w-2xl">
                     <h2 className="text-xl font-bold mb-6 text-slate-800">Profile Settings</h2>
                     <form onSubmit={handleProfileUpdate} className="space-y-6">
                         <div>
@@ -329,7 +329,7 @@ export default function Settings() {
 
             {/* Security Settings Tab */}
             {activeTab === 'security' && (
-                <div className="glass-card p-8 border-none bg-white max-w-2xl">
+                <div id="report-table" className="glass-card p-8 border-none bg-white max-w-2xl">
                     <h2 className="text-xl font-bold mb-6 text-slate-800">Change Password</h2>
                     <form onSubmit={handlePasswordUpdate} className="space-y-6">
                         <div>
@@ -381,7 +381,7 @@ export default function Settings() {
 
             {/* User Management Tab (Admin Only) */}
             {activeTab === 'users' && isAdmin && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div id="report-table" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Create/Edit User Form */}
                     <div className="glass-card p-6 border-none bg-white h-fit shadow-sm">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">

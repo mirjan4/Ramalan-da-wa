@@ -16,7 +16,9 @@ import Settings from './pages/Settings';
 import FieldDataList from './pages/FieldDataList';
 import FieldDataForm from './pages/FieldDataForm';
 import BookReport from './pages/BookReport';
+import DenominationReport from './pages/DenominationReport';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollFeatures from './components/ScrollFeatures';
 
 function App() {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
@@ -26,7 +28,7 @@ function App() {
 
     return (
         <Router>
-            <div className="min-h-screen flex bg-slate-50 relative overflow-x-hidden print:bg-white print:p-0 print:m-0">
+            <div className="min-h-screen flex bg-slate-150 relative overflow-x-hidden print:bg-white print:p-0 print:m-0">
                 {user && (
                     <>
                         {/* Mobile Overlay */}
@@ -65,6 +67,7 @@ function App() {
                                 <Route path="/collection" element={<CollectionEntry />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/book-report" element={<BookReport />} />
+                                <Route path="/denomination-report" element={<DenominationReport />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/field-data" element={<FieldDataList />} />
                                 <Route path="/field-data/new" element={<FieldDataForm />} />
@@ -73,6 +76,7 @@ function App() {
                         </Routes>
                     </main>
                 </div>
+                <ScrollFeatures />
             </div>
         </Router>
     );

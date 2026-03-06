@@ -15,7 +15,28 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [activeSeason, setActiveSeason] = useState(null);
 
-  const COLORS = ['#1E5FA8', '#0F3B66', '#10B981', '#F59E0B', '#EF4444', '#5A8CC9', '#A3C4E8'];
+  const COLORS = [
+"#2563EB",
+"#0EA5E9",
+"#10B981",
+"#F59E0B",
+"#EF4444",
+"#6366F1",
+"#14B8A6",
+"#9333EA",
+"#F97316",
+"#06B6D4",
+"#84CC16",
+"#EC4899",
+"#22C55E",
+"#F43F5E",
+"#3B82F6",
+"#4ADE80",
+"#A855F7",
+"#FB923C",
+"#EAB308",
+"#0EA5E9"
+];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,7 +94,7 @@ export default function Dashboard() {
     : 0;
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto bg-white min-h-screen">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div>
           <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Overview</h1>

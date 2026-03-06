@@ -95,7 +95,8 @@ export default function TeamsList() {
     return (
         <div className="p-8 max-w-7xl mx-auto print:p-0 print:max-w-none print:m-0">
             <div className="print:hidden">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+                {/* Header Area */}
+                <div id="report-summary" className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 print:hidden">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
                             <Users size={24} />
@@ -132,7 +133,8 @@ export default function TeamsList() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {/* Main Table Section */}
+                <div id="report-table" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {loading ? (
                         <div className="col-span-full py-20 text-center text-slate-400 italic font-medium">Loading teams...</div>
                     ) : filteredTeams.length === 0 ? (
@@ -293,6 +295,20 @@ export default function TeamsList() {
                     </div>
                 </PrintContainer>
             )}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                @media print {
+                    @page { margin: 20mm; }
+                    body { background: white; }
+                    .h-\\[100dvh\\] { height: auto !important; overflow: visible !important; }
+                    .overflow-y-auto { overflow: visible !important; }
+                    .max-w-4xl { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+                    /* Force colors to print */
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                }
+            `}} />
         </div>
     );
 }

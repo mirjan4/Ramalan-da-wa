@@ -237,7 +237,7 @@ export default function FieldDataList() {
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header Section */}
             <div className="flex flex-col gap-6 mb-10">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div id="report-summary" className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
                             <MapPin size={24} />
@@ -402,7 +402,7 @@ export default function FieldDataList() {
 
             {/* Content Area */}
             {viewType === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div id="report-table" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {loading ? (
                         <div className="col-span-full py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading field collections...</div>
                     ) : filteredData.length === 0 ? (
@@ -523,7 +523,7 @@ export default function FieldDataList() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+                    <div id="report-table" className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[1000px]">
                                 <thead className="sticky top-0 z-10">
@@ -675,6 +675,20 @@ export default function FieldDataList() {
                     </div>
                 </div>
             )}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                @media print {
+                    @page { margin: 20mm; }
+                    body { background: white; }
+                    .h-\\[100dvh\\] { height: auto !important; overflow: visible !important; }
+                    .overflow-y-auto { overflow: visible !important; }
+                    .max-w-4xl { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+                    /* Force colors to print */
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                }
+            `}} />
         </div>
     );
 }

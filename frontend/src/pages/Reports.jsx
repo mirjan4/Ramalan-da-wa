@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { teamService, seasonService } from '../services/api';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import { Download, Filter, Table as TableIcon, FileSpreadsheet, Edit3, Search, ArrowUpDown, Printer, Settings2, ChevronDown, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Filter, Users, Table as TableIcon, FileSpreadsheet, Edit3, ArrowUpDown, Printer, Settings2, ChevronDown, Check, ChevronLeft, ChevronRight, Coins, Banknote, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MySwal } from '../utils/swal';
 import PrintContainer from '../components/print/PrintContainer';
@@ -16,7 +16,7 @@ export default function Reports() {
     const [teams, setTeams] = useState([]);
     const [seasons, setSeasons] = useState([]);
     const [selectedSeason, setSelectedSeason] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTeamId, setSelectedTeamId] = useState('');
     const [sortBy, setSortBy] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -38,15 +38,13 @@ export default function Reports() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, selectedSeason, sortBy]);
+    }, [selectedSeason, sortBy, selectedTeamId]);
 
     const filteredAndSortedTeams = teams
-        .filter(team =>
-            team.placeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            team.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (team.cashRef && team.cashRef.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (team.bankRef && team.bankRef.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
+        .filter(team => {
+            const matchesTeam = !selectedTeamId || team._id === selectedTeamId;
+            return matchesTeam;
+        })
         .sort((a, b) => {
             if (sortBy === 'high-to-low') return b.totalCollection - a.totalCollection;
             if (sortBy === 'low-to-high') return a.totalCollection - b.totalCollection;
@@ -58,6 +56,13 @@ export default function Reports() {
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
+
+    // --- Aggregated Summary Totals (from filtered teams) ---
+    const summaryTotals = filteredAndSortedTeams.reduce((acc, team) => ({
+        collection: acc.collection + (team.totalCollection || 0),
+        bank: acc.bank + (team.bankAmount || 0),
+        cash: acc.cash + (team.cashAmount || 0),
+    }), { collection: 0, bank: 0, cash: 0 });
 
     const fetchSeasons = async () => {
         try {
@@ -234,26 +239,29 @@ export default function Reports() {
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-10 print:hidden">
                 <div>
                     <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Financial Reports</h1>
-                    <p className="text-sm font-medium text-slate-500 mt-1">Review team performance and export audit-ready collection data.</p>
+                    <p className="text-sm font-medium text-slate-500 mt-1">Review team performance and export collection data.</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+
                     <div className="relative flex-1 min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Find team or place..."
-                            className="input-field pl-10"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-
-                    <div className="relative flex-1 min-w-[180px]">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <select
                             className="input-field pl-10"
+                            value={selectedTeamId}
+                            onChange={(e) => setSelectedTeamId(e.target.value)}
+                        >
+                            <option value="">All Teams</option>
+                            {teams.map((t) => (
+                                <option key={t._id} value={t._id}>{t.placeName} ({t.state})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="relative flex-1 min-w-[150px]">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <select
+                            className="input-field pl-10 font-bold"
                             value={selectedSeason}
                             onChange={(e) => handleSeasonChange(e.target.value)}
                         >
@@ -269,7 +277,7 @@ export default function Reports() {
                             className="btn-secondary flex items-center gap-2 px-4 py-2.5 relative"
                         >
                             <Settings2 size={18} />
-                            <span className="hidden sm:inline">Column View</span>
+                            <span className="hidden sm:inline">View</span>
                             <ChevronDown size={14} className={`transition-transform duration-200 ${showColumnMenu ? 'rotate-180' : ''}`} />
                         </button>
 
@@ -309,12 +317,60 @@ export default function Reports() {
                         onClick={exportToExcel}
                         className="btn-primary bg-[#10B981] hover:bg-[#059669] flex items-center gap-2 shadow-sm"
                     >
-                        <FileSpreadsheet size={18} /> Export Excel
+                        <FileSpreadsheet size={15} /> Export
                     </button>
                 </div>
             </div>
 
-            <div className="glass-card overflow-hidden border-none bg-white shadow-xl print:hidden">
+            {/* ── Summary Cards ── */}
+            <div id="report-summary" className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8 print:hidden">
+                {/* Total Collection */}
+                <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-[#1E5FA8] p-5 shadow-sm flex items-center gap-4">
+                    <div className="p-3 bg-[#E6F0FA] rounded-xl">
+                        <Banknote size={22} className="text-[#1E5FA8]" />
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Collection</p>
+                        <p className="text-2xl font-black text-[#0F3B66] tracking-tight">
+                            ₹{summaryTotals.collection.toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{filteredAndSortedTeams.length} teams</p>
+                    </div>
+                </div>
+
+                {/* Bank Amount */}
+                <div className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-[#10B981] p-5 shadow-sm flex items-center gap-4">
+                    <div className="p-3 bg-emerald-50 rounded-xl">
+                        <Wallet size={22} className="text-[#10B981]" />
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Bank Amount</p>
+                        <p className="text-2xl font-black text-[#0F3B66] tracking-tight">
+                            ₹{summaryTotals.bank.toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Across all teams</p>
+                    </div>
+                </div>
+
+                {/* Total Cash in Hand — clickable */}
+                <div
+                    onClick={() => navigate('/denomination-report')}
+                    className="bg-white rounded-2xl border border-slate-100 border-l-4 border-l-[#F59E0B] p-5 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-amber-200 hover:bg-amber-50/30 transition-all group"
+                >
+                    <div className="p-3 bg-amber-50 rounded-xl group-hover:bg-amber-100 transition-colors">
+                        <Coins size={22} className="text-[#F59E0B]" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Cash in Hand</p>
+                        <p className="text-2xl font-black text-[#0F3B66] tracking-tight">
+                            ₹{summaryTotals.cash.toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">From denomination counts · <span className="text-[#F59E0B] font-bold">View details →</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="report-table" className="glass-card overflow-hidden border-none bg-white shadow-xl print:hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>

@@ -17,7 +17,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 router.put('/:id/collection', authenticateToken, async (req, res) => {
-    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef } = req.body;
+    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, denominationCounts } = req.body;
     try {
         const team = await Team.findById(req.params.id);
         if (!team) return res.status(404).json({ message: 'Team not found' });
@@ -54,6 +54,11 @@ router.put('/:id/collection', authenticateToken, async (req, res) => {
         team.bankRef = bankRef || '';
         team.totalCollection = receiptBooks.reduce((acc, book) => acc + (Number(book.collectedAmount) || 0), 0);
 
+        // Save denomination counts if provided
+        if (denominationCounts && typeof denominationCounts === 'object') {
+            team.denominationCounts = denominationCounts;
+        }
+
         await team.save();
         res.json(team);
     } catch (err) {
@@ -63,7 +68,7 @@ router.put('/:id/collection', authenticateToken, async (req, res) => {
 });
 
 router.put('/:id/finalize-complete', authenticateToken, async (req, res) => {
-    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, expense } = req.body;
+    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, expense, denominationCounts } = req.body;
     try {
         const team = await Team.findById(req.params.id);
         if (!team) return res.status(404).json({ message: 'Team not found' });
@@ -103,6 +108,11 @@ router.put('/:id/finalize-complete', authenticateToken, async (req, res) => {
         team.expense = Number(expense) || 0;
         team.balance = team.totalCollection + (team.advanceAmount || 0) - team.expense;
         team.status = team.balance >= 0 ? 'SETTLED' : 'SHORTAGE';
+
+        // Save denomination counts if provided
+        if (denominationCounts && typeof denominationCounts === 'object') {
+            team.denominationCounts = denominationCounts;
+        }
 
         // Auto-lock on full finalization
         team.isLocked = true;

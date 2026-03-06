@@ -34,6 +34,12 @@ const teamSchema = new mongoose.Schema({
     balance: { type: Number, default: 0 },
     status: { type: String, enum: ['PENDING', 'SETTLED', 'SHORTAGE'], default: 'PENDING' },
     isLocked: { type: Boolean, default: false },
+    // Denomination breakdown — stored when settlement is finalized
+    denominationCounts: {
+        type: Map,
+        of: Number,
+        default: {}
+    },
 }, { timestamps: true });
 
 export default mongoose.models.Team || mongoose.model('Team', teamSchema);
