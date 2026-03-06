@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fieldDataService, seasonService, userService } from '../services/api';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import {
     MapPin, Plus, Search, FileText, Lock, Globe, Phone, User, Users, Trash2,
     LayoutGrid, List, ArrowUpDown, SortAsc, SortDesc, Filter,
@@ -207,30 +209,98 @@ export default function FieldDataList() {
         }
     };
 
-    const handleExport = () => {
-        const headers = ["Masjid / Shop Name", "Place", "Land Mark", "Contact Name", "Phone", "Designation", " Collection", "Remarks", "Created By"];
-        const csvContent = [
-            headers.join(","),
-            ...fieldData.map(item => [
-                `"${item.masjidName}"`,
-                `"${item.place}"`,
-                `"${item.location?.address || ''}"`,
-                `"${item.contactPerson?.name}"`,
-                `"${item.contactPerson?.phone}"`,
-                `"${item.contactPerson?.designation || ''}"`,
-                `"${item.yearsOfCollection || ''}"`,
-                `"${item.remarks || ''}"`,
-                `"${item.createdBy?.displayName || item.createdBy?.username}"`
-            ].join(","))
-        ].join("\n");
+    const handleExport = async () => {
+        const workbook = new ExcelJS.Workbook();
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `field_data_${activeSeason?.name || 'export'}.csv`);
-        document.body.appendChild(link);
-        link.click();
+        // Helper to setup standard sheet structure
+        const setupSheet = (name) => {
+            const sheet = workbook.addWorksheet(name);
+            sheet.columns = [
+                { header: 'Masjid / Shop Name', key: 'masjidName', width: 30 },
+                { header: 'Place', key: 'place', width: 25 },
+                { header: 'Land Mark', key: 'landmark', width: 25 },
+                { header: 'Contact Name', key: 'contactName', width: 25 },
+                { header: 'Phone', key: 'phone', width: 18 },
+                { header: 'Designation', key: 'designation', width: 15 },
+                { header: 'Collection', key: 'collection', width: 15 },
+                { header: 'Remarks', key: 'remarks', width: 35 },
+                { header: 'Created By', key: 'createdBy', width: 20 },
+            ];
+
+            // Header Styling - Premium institutional blue
+            const headerRow = sheet.getRow(1);
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF1E5FA8' },
+            };
+            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+            headerRow.height = 25;
+
+            return sheet;
+        };
+
+        const addBorders = (sheet) => {
+            sheet.eachRow((row) => {
+                row.eachCell((cell) => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' },
+                    };
+                });
+            });
+        };
+
+        // --- Sheet 1: All Entries ---
+        const allSheet = setupSheet('All Entries');
+        fieldData.forEach(item => {
+            allSheet.addRow({
+                masjidName: item.masjidName,
+                place: item.place,
+                landmark: item.location?.address || '',
+                contactName: item.contactPerson?.name,
+                phone: item.contactPerson?.phone,
+                designation: item.contactPerson?.designation || '',
+                collection: item.yearsOfCollection || '',
+                remarks: item.remarks || '',
+                createdBy: item.createdBy?.displayName || item.createdBy?.username || 'Unknown'
+            });
+        });
+        addBorders(allSheet);
+
+        // --- Subsequent Sheets: Per Team ---
+        const teamGroups = new Map();
+        fieldData.forEach(item => {
+            const teamName = item.createdBy?.displayName || item.createdBy?.username || 'Unknown';
+            if (!teamGroups.has(teamName)) teamGroups.set(teamName, []);
+            teamGroups.get(teamName).push(item);
+        });
+
+        teamGroups.forEach((items, teamName) => {
+            // Sheet name constraints: max 31 chars, no special chars
+            const safeName = teamName.substring(0, 31).replace(/[\[\]\*\?\/\\]/g, '') || 'Team';
+            const teamSheet = setupSheet(safeName);
+            items.forEach(item => {
+                teamSheet.addRow({
+                    masjidName: item.masjidName,
+                    place: item.place,
+                    landmark: item.location?.address || '',
+                    contactName: item.contactPerson?.name,
+                    phone: item.contactPerson?.phone,
+                    designation: item.contactPerson?.designation || '',
+                    collection: item.yearsOfCollection || '',
+                    remarks: item.remarks || '',
+                    createdBy: item.createdBy?.displayName || item.createdBy?.username || 'Unknown'
+                });
+            });
+            addBorders(teamSheet);
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), `field_data_${activeSeason?.name || 'export'}.xlsx`);
     };
 
     return (
