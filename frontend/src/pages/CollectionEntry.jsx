@@ -97,6 +97,15 @@ export default function CollectionEntry() {
         setBankRef(teamData.bankRef || '');
         setAdvanceAmount(teamData.advanceAmount || 0);
 
+        // Initialize denominations from existing record if available
+        if (teamData.denominationCounts && Object.keys(teamData.denominationCounts).length > 0) {
+          setDenomCounts(teamData.denominationCounts);
+          setUseDenomination(true);
+        } else {
+          setDenomCounts(Object.fromEntries(DENOMS.map(d => [d.key, ''])));
+          setUseDenomination(false);
+        }
+
         if (teamData.expense) {
           setExpense(teamData.expense);
           setManualExpense(true);
@@ -497,149 +506,147 @@ export default function CollectionEntry() {
               </div>
 
               {/* Part 3: Expenses & Final Settlement */}
-            <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 h-full flex flex-col justify-between">
+              <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 h-full flex flex-col justify-between">
 
-  {/* Header */}
-  <div className="flex justify-between items-center mb-6">
-    <h2 className="text-lg font-bold text-slate-900">
-      Financial Summary
-    </h2>
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Financial Summary
+                  </h2>
 
-    <span className="text-[10px] bg-slate-100 text-slate-500 px-3 py-1 rounded-lg uppercase tracking-widest font-bold">
-      Consolidated
-    </span>
-  </div>
-
-
-  <div className="space-y-6">
-
-    {/* Team Collection */}
-    <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-      <span className="text-sm text-slate-500">
-        Team Collection
-      </span>
-
-      <span className="text-lg font-bold text-slate-900">
-        ₹{totalCalculated.toLocaleString()}
-      </span>
-    </div>
+                  <span className="text-[10px] bg-slate-100 text-slate-500 px-3 py-1 rounded-lg uppercase tracking-widest font-bold">
+                    Consolidated
+                  </span>
+                </div>
 
 
-    {/* Advance */}
-    <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-      <span className="text-sm text-slate-500">
-        Advance Granted (+)
-      </span>
+                <div className="space-y-6">
 
-      <span className="text-lg font-bold text-blue-600">
-        ₹{advanceAmount.toLocaleString()}
-      </span>
-    </div>
+                  {/* Team Collection */}
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <span className="text-sm text-slate-500">
+                      Team Collection
+                    </span>
 
-
-    {/* Operational Expense */}
-    <div>
-
-      <label className="text-sm font-medium text-slate-600 flex items-center gap-2">
-        Operational Expense (-)
-
-        {totalCalculated > 0 && (
-          <span className="text-xs text-slate-400">
-            ({((Number(expense) / totalCalculated) * 100).toFixed(1)}%)
-          </span>
-        )}
-      </label>
+                    <span className="text-lg font-bold text-slate-900">
+                      ₹{totalCalculated.toLocaleString()}
+                    </span>
+                  </div>
 
 
-      <input
-        required
-        type="number"
-        value={expense}
-        onChange={e => handleExpenseChange(e.target.value)}
-        className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-2xl font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition"
-      />
+                  {/* Advance */}
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <span className="text-sm text-slate-500">
+                      Advance Granted (+)
+                    </span>
+
+                    <span className="text-lg font-bold text-blue-600">
+                      ₹{advanceAmount.toLocaleString()}
+                    </span>
+                  </div>
 
 
-      {/* Expense Percentage Bar */}
-      {totalCalculated > 0 && (
-        <div className="mt-3">
+                  {/* Operational Expense */}
+                  <div>
 
-          <div className="flex justify-between text-xs text-slate-400 mb-1">
-            <span>Expense Ratio</span>
-            <span>
-              {((Number(expense) / totalCalculated) * 100).toFixed(1)}%
-            </span>
-          </div>
+                    <label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                      Operational Expense (-)
 
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-
-            <div
-              className={`h-full rounded-full ${
-                ((Number(expense) / totalCalculated) * 100) > 35
-                  ? "bg-red-500"
-                  : ((Number(expense) / totalCalculated) * 100) > 20
-                  ? "bg-amber-500"
-                  : "bg-emerald-500"
-              }`}
-              style={{
-                width: `${Math.min(
-                  ((Number(expense) / totalCalculated) * 100),
-                  100
-                )}%`
-              }}
-            />
-
-          </div>
-
-        </div>
-      )}
+                      {totalCalculated > 0 && (
+                        <span className="text-xs text-slate-400">
+                          ({((Number(expense) / totalCalculated) * 100).toFixed(1)}%)
+                        </span>
+                      )}
+                    </label>
 
 
-      {/* Suggestion */}
-      <div className="flex justify-between items-center mt-3">
-
-        <span className="text-xs text-slate-400 italic">
-          Standard: ₹{suggestedExpense.toLocaleString()} (25%)
-        </span>
-
-        <button
-          type="button"
-          onClick={() => setExpense(suggestedExpense)}
-          className="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider"
-        >
-          Auto Suggest
-        </button>
-
-      </div>
-
-    </div>
+                    <input
+                      required
+                      type="number"
+                      value={expense}
+                      onChange={e => handleExpenseChange(e.target.value)}
+                      className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-2xl font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                    />
 
 
-    {/* Net Surplus */}
-    <div className="border-t border-slate-100 pt-6">
+                    {/* Expense Percentage Bar */}
+                    {totalCalculated > 0 && (
+                      <div className="mt-3">
 
-      <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">
-        Net Surplus
-      </span>
+                        <div className="flex justify-between text-xs text-slate-400 mb-1">
+                          <span>Expense Ratio</span>
+                          <span>
+                            {((Number(expense) / totalCalculated) * 100).toFixed(1)}%
+                          </span>
+                        </div>
 
-      <div className="mt-1 flex items-end justify-between">
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
 
-        <span
-          className={`text-4xl font-black tracking-tight ${
-            balance >= 0 ? "text-emerald-600" : "text-red-500"
-          }`}
-        >
-          ₹{balance.toLocaleString()}
-        </span>
+                          <div
+                            className={`h-full rounded-full ${((Number(expense) / totalCalculated) * 100) > 35
+                                ? "bg-red-500"
+                                : ((Number(expense) / totalCalculated) * 100) > 20
+                                  ? "bg-amber-500"
+                                  : "bg-emerald-500"
+                              }`}
+                            style={{
+                              width: `${Math.min(
+                                ((Number(expense) / totalCalculated) * 100),
+                                100
+                              )}%`
+                            }}
+                          />
 
-        
-      </div>
+                        </div>
 
-    </div>
+                      </div>
+                    )}
 
-  </div>
 
-</div>
+                    {/* Suggestion */}
+                    <div className="flex justify-between items-center mt-3">
+
+                      <span className="text-xs text-slate-400 italic">
+                        Standard: ₹{suggestedExpense.toLocaleString()} (25%)
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setExpense(suggestedExpense)}
+                        className="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider"
+                      >
+                        Auto Suggest
+                      </button>
+
+                    </div>
+
+                  </div>
+
+
+                  {/* Net Surplus */}
+                  <div className="border-t border-slate-100 pt-6">
+
+                    <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">
+                      Net Surplus
+                    </span>
+
+                    <div className="mt-1 flex items-end justify-between">
+
+                      <span
+                        className={`text-4xl font-black tracking-tight ${balance >= 0 ? "text-emerald-600" : "text-red-500"
+                          }`}
+                      >
+                        ₹{balance.toLocaleString()}
+                      </span>
+
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
             </div>
 
             <div className="flex justify-end gap-4">

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { dashboardService, seasonService } from '../services/api';
 import {
   Users, Banknote, Landmark, CreditCard, Scale, Plus, Settings, BookOpen,
-  ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, CheckCircle2
+  ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, CheckCircle2, Award, X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -14,29 +14,30 @@ import {
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [activeSeason, setActiveSeason] = useState(null);
+  const [showUmrahModal, setShowUmrahModal] = useState(false);
 
   const COLORS = [
-"#2563EB",
-"#0EA5E9",
-"#10B981",
-"#F59E0B",
-"#EF4444",
-"#6366F1",
-"#14B8A6",
-"#9333EA",
-"#F97316",
-"#06B6D4",
-"#84CC16",
-"#EC4899",
-"#22C55E",
-"#F43F5E",
-"#3B82F6",
-"#4ADE80",
-"#A855F7",
-"#FB923C",
-"#EAB308",
-"#0EA5E9"
-];
+    "#2563EB",
+    "#0EA5E9",
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#6366F1",
+    "#14B8A6",
+    "#9333EA",
+    "#F97316",
+    "#06B6D4",
+    "#84CC16",
+    "#EC4899",
+    "#22C55E",
+    "#F43F5E",
+    "#3B82F6",
+    "#4ADE80",
+    "#A855F7",
+    "#FB923C",
+    "#EAB308",
+    "#0EA5E9"
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,6 +68,23 @@ export default function Dashboard() {
         fill: COLORS[index % COLORS.length]
       }));
   }, [stats?.teams]);
+
+  const umrahQualifiers = useMemo(() => {
+    if (!stats?.teams) return [];
+    return stats.teams
+      .map(team => {
+        let slots = 0;
+        if (team.collection >= 700000) slots = 2;
+        else if (team.collection >= 500000) slots = 1;
+        return { ...team, slots };
+      })
+      .filter(team => team.slots > 0)
+      .sort((a, b) => b.collection - a.collection);
+  }, [stats?.teams]);
+
+  const totalUmrahSlots = useMemo(() => {
+    return umrahQualifiers.reduce((sum, team) => sum + team.slots, 0);
+  }, [umrahQualifiers]);
 
   if (!activeSeason) {
     return (
@@ -181,7 +199,7 @@ export default function Dashboard() {
           </div>
 
           {/* Row 2: Payment & Team Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="bg-white p-5 rounded-xl border border-slate-50 flex items-center justify-between shadow-sm">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Bank Assets</p>
@@ -212,6 +230,17 @@ export default function Dashboard() {
                 <p className="text-lg font-bold text-[#10B981]">{stats.settledTeams || 0} <span className="text-[10px] text-slate-300 ml-1">/ {stats.totalTeams}</span></p>
               </div>
               <CheckCircle2 size={18} className="text-[#10B981]" />
+            </div>
+
+            <div
+              onClick={() => setShowUmrahModal(true)}
+              className="bg-white p-5 rounded-xl border border-slate-50 flex items-center justify-between shadow-sm cursor-pointer hover:border-amber-200 hover:shadow-md transition-all group"
+            >
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Umrah Rewards</p>
+                <p className="text-lg font-bold text-[#0F3B66]">🕋 {totalUmrahSlots} Slots</p>
+              </div>
+              <Award size={18} className="text-amber-500 group-hover:scale-110 transition-transform" />
             </div>
           </div>
 
@@ -299,6 +328,78 @@ export default function Dashboard() {
                 <span className="font-bold text-slate-700 text-sm">{action.label}</span>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Umrah Rewards Detail Modal */}
+      {showUmrahModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                  <Award size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-[#0F3B66]">Umrah Reward Qualifiers</h2>
+                  <p className="text-xs text-slate-500 font-medium">Institutional targets: <span className="font-bold text-amber-600">🕋 {totalUmrahSlots} Slots Archived</span></p>
+                </div>
+              </div>
+              <button onClick={() => setShowUmrahModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+
+            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {umrahQualifiers.length > 0 ? (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                      <th className="pb-3 px-2">Team Unit</th>
+                      <th className="pb-3 px-2 text-center">Collection</th>
+                      <th className="pb-3 px-2 text-right">Umrah Slots</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {umrahQualifiers.map((team, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 px-2">
+                          <p className="font-bold text-[#0F3B66]">{team.name}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Qualified Entry</p>
+                        </td>
+                        <td className="py-4 px-2 text-center">
+                          <span className="font-bold text-slate-700">₹{team.collection.toLocaleString()}</span>
+                        </td>
+                        <td className="py-4 px-2 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-black">
+                              {Array(team.slots).fill("🕋").join(" ")}
+                            </span>
+                            <span className="text-[10px] font-bold text-amber-600 mt-1 uppercase tracking-widest">{team.slots} Slot{team.slots > 1 ? 's' : ''} Achieved</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="py-20 text-center">
+                  <Award size={48} className="mx-auto text-slate-100 mb-4" />
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No teams have reached reward thresholds yet.</p>
+                  <p className="text-[10px] text-slate-300 mt-1 italic">Qualifying starts at ₹5,00,000</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowUmrahModal(false)}
+                className="px-8 py-3 bg-[#0F3B66] text-white font-bold rounded-xl hover:bg-[#1E5FA8] transition-all shadow-lg shadow-blue-900/10"
+              >
+                Close 
+              </button>
+            </div>
           </div>
         </div>
       )}
