@@ -1,29 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
-import { teamService, seasonService } from '../services/api';
+import { teamService, seasonService, settlementService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft, Printer, Filter
+    ArrowLeft, Printer, Filter, Banknote, Coins, Wallet, CheckCircle2, AlertCircle, Save, Lock, ArrowUpDown, LayoutGrid, History, Send, Landmark, Trash2, Boxes, HandCoins
 } from 'lucide-react';
+import { confirmAction, MySwal } from '../utils/swal';
 
-const NOTE_DENOMS = [
-    { key: 'note_500', value: 500, label: '500' },
-    { key: 'note_200', value: 200, label: '200' },
-    { key: 'note_100', value: 100, label: '100' },
-    { key: 'note_50', value: 50, label: '50' },
-    { key: 'note_20', value: 20, label: '20' },
-    { key: 'note_10', value: 10, label: '10' },
-    { key: 'note_5', value: 5, label: '5' },
+// --- Denomination Master ---
+const DENOMS = [
+    { key: 'note_500', value: 500, label: '₹500', type: 'note' },
+    { key: 'note_200', value: 200, label: '₹200', type: 'note' },
+    { key: 'note_100', value: 100, label: '₹100', type: 'note' },
+    { key: 'note_50', value: 50, label: '₹50', type: 'note' },
+    { key: 'note_20', value: 20, label: '₹20', type: 'note' },
+    { key: 'note_10', value: 10, label: '₹10', type: 'note' },
+    { key: 'note_5', value: 5, label: '₹5', type: 'note' },
+    { key: 'coin_20', value: 20, label: '₹20', type: 'coin' },
+    { key: 'coin_10', value: 10, label: '₹10', type: 'coin' },
+    { key: 'coin_5', value: 5, label: '₹5', type: 'coin' },
+    { key: 'coin_2', value: 2, label: '₹2', type: 'coin' },
+    { key: 'coin_1', value: 1, label: '₹1', type: 'coin' },
 ];
 
-const COIN_DENOMS = [
-    { key: 'coin_20', value: 20, label: '20' },
-    { key: 'coin_10', value: 10, label: '10' },
-    { key: 'coin_5', value: 5, label: '5' },
-    { key: 'coin_2', value: 2, label: '2' },
-    { key: 'coin_1', value: 1, label: '1' },
-];
+const NOTE_DENOMS = DENOMS.filter(d => d.type === 'note');
+const COIN_DENOMS = DENOMS.filter(d => d.type === 'coin');
+const ALL_DENOMS = DENOMS;
 
-const ALL_DENOMS = [...NOTE_DENOMS, ...COIN_DENOMS];
 const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
 
 export default function DenominationReport() {
@@ -32,191 +34,320 @@ export default function DenominationReport() {
     const [seasons, setSeasons] = useState([]);
     const [selectedSeason, setSelectedSeason] = useState('');
     const [selectedTeamId, setSelectedTeamId] = useState('');
-    const [loadingTeams, setLoadingTeams] = useState(false);
+    const [teamData, setTeamData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Office State
+    const [deposits, setDeposits] = useState([]);
+    const [depositCounts, setDepositCounts] = useState(Object.fromEntries(ALL_DENOMS.map(d => [d.key, ''])));
+    
+    // Individual Team state
+    const [counts, setCounts] = useState(Object.fromEntries(ALL_DENOMS.map(d => [d.key, ''])));
+
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAdmin = currentUser.role === 'admin';
 
     useEffect(() => {
         seasonService.getAll().then(res => {
-            setSeasons(res.data);
             const active = res.data.find(s => s.isActive);
             if (active) setSelectedSeason(active._id);
-        }).catch(err => console.error('Failed to fetch seasons:', err));
+            setSeasons(res.data);
+        });
     }, []);
 
     useEffect(() => {
         if (selectedSeason) {
-            setLoadingTeams(true);
-            teamService.getAll(selectedSeason)
-                .then(res => setTeams(res.data))
-                .finally(() => setLoadingTeams(false));
-            setSelectedTeamId(''); // Reset team when season changes
+            const saved = localStorage.getItem(`office_deposits_${selectedSeason}`);
+            setDeposits(saved ? JSON.parse(saved) : []);
+            setLoading(true);
+            teamService.getAll(selectedSeason).then(res => setTeams(res.data)).finally(() => setLoading(false));
         }
     }, [selectedSeason]);
 
-    const aggregatedCounts = useMemo(() => {
-        const totals = Object.fromEntries(ALL_DENOMS.map(d => [d.key, 0]));
-        const sourceTeams = selectedTeamId
-            ? teams.filter(t => t._id === selectedTeamId)
-            : teams;
+    useEffect(() => {
+        if (selectedTeamId) {
+            setLoading(true);
+            teamService.getById(selectedTeamId).then(res => {
+                setTeamData(res.data);
+                const rawCounts = res.data.denominationCounts instanceof Map ? Object.fromEntries(res.data.denominationCounts) : (res.data.denominationCounts || {});
+                const newCounts = Object.fromEntries(ALL_DENOMS.map(d => [d.key, rawCounts[d.key] || '']));
+                setCounts(newCounts);
+            }).finally(() => setLoading(false));
+        } else {
+            setTeamData(null);
+        }
+    }, [selectedTeamId]);
 
-        sourceTeams.forEach(team => {
-            if (team.denominationCounts) {
-                Object.entries(team.denominationCounts).forEach(([key, count]) => {
-                    if (totals.hasOwnProperty(key)) totals[key] += (Number(count) || 0);
-                });
+    // --- Core Audit Logic (Fixing consistency for Grand Total) ---
+    const officeInventory = useMemo(() => {
+        const receivedCounts = Object.fromEntries(ALL_DENOMS.map(d => [d.key, 0]));
+        let totalAdvancesGiven = 0;
+
+        teams.forEach(t => {
+            totalAdvancesGiven += (t.advanceAmount || 0);
+            if (t.denominationCounts) {
+                const raw = t.denominationCounts instanceof Map ? Object.fromEntries(t.denominationCounts) : t.denominationCounts;
+                ALL_DENOMS.forEach(d => receivedCounts[d.key] += (Number(raw[d.key]) || 0));
             }
         });
-        return totals;
-    }, [teams, selectedTeamId]);
 
-    const noteRows = NOTE_DENOMS.map(d => ({
-        ...d,
-        count: aggregatedCounts[d.key] || 0,
-        amount: d.value * (aggregatedCounts[d.key] || 0),
-    }));
+        // Sum of all denominations received
+        const receivedValue = ALL_DENOMS.reduce((acc, d) => acc + (receivedCounts[d.key] * d.value), 0);
 
-    const coinRows = COIN_DENOMS.map(d => ({
-        ...d,
-        count: aggregatedCounts[d.key] || 0,
-        amount: d.value * (aggregatedCounts[d.key] || 0),
-    }));
+        const depositedCounts = Object.fromEntries(ALL_DENOMS.map(d => [d.key, 0]));
+        deposits.forEach(d => {
+            ALL_DENOMS.forEach(denom => depositedCounts[denom.key] += (Number(d.breakdown?.[denom.key]) || 0));
+        });
 
-    const noteTotal = noteRows.reduce((s, r) => s + r.amount, 0);
-    const coinTotal = coinRows.reduce((s, r) => s + r.amount, 0);
-    const grandTotal = noteTotal + coinTotal;
+        // Sum of all denominations deposited
+        const depositedValue = ALL_DENOMS.reduce((acc, d) => acc + (depositedCounts[d.key] * d.value), 0);
+
+        // Core remaining inventory
+        const remainingCounts = Object.fromEntries(ALL_DENOMS.map(d => [d.key, (receivedCounts[d.key] - depositedCounts[d.key])]));
+        
+        // --- IMPORTANT: Calculate Grand Total solely from remaining denominations to ensure table consistency ---
+        const remainingValue = ALL_DENOMS.reduce((acc, d) => acc + (remainingCounts[d.key] * d.value), 0);
+
+        return {
+            received: { val: receivedValue, denoms: receivedCounts },
+            deposited: { val: depositedValue, denoms: depositedCounts },
+            advances: totalAdvancesGiven,
+            remaining: { val: remainingValue, denoms: remainingCounts }
+        };
+    }, [teams, deposits]);
+
+    const activeEntryTotal = useMemo(() => ALL_DENOMS.reduce((acc, d) => acc + (Number(selectedTeamId ? counts[d.key] : depositCounts[d.key]) || 0) * d.value, 0), [selectedTeamId, counts, depositCounts]);
+    const teamDiff = activeEntryTotal - (teamData?.cashAmount || 0);
+
+    const handleCountChange = (key, val, mode) => {
+        if (val === '' || (Number(val) >= 0 && Number.isInteger(Number(val)))) {
+            if (mode === 'office') setDepositCounts(prev => ({ ...prev, [key]: val }));
+            else { if (!(teamData?.isLocked && !isAdmin)) setCounts(prev => ({ ...prev, [key]: val })); }
+        }
+    };
+
+    const handleTeamSync = async () => {
+        if (!selectedTeamId || (teamData?.isLocked && !isAdmin)) return;
+        const confirmed = await confirmAction({ title: "Sync Audit?", text: `Reconcile ₹${fmt(activeEntryTotal)}?`, confirmText: "Sync", variant: "success" });
+        if (!confirmed) return;
+        setIsSaving(true);
+        try {
+            await settlementService.submitCollection(selectedTeamId, { ...teamData, cashAmount: activeEntryTotal, denominationCounts: counts });
+            MySwal.fire({ title: 'Success', icon: 'success', timer: 1500, showConfirmButton: false });
+            const res = await teamService.getById(selectedTeamId);
+            setTeamData(res.data);
+            const teamsRes = await teamService.getAll(selectedSeason);
+            setTeams(teamsRes.data);
+        } catch (err) { MySwal.fire('Error', 'Update failed', 'error'); }
+        finally { setIsSaving(false); }
+    };
+
+    const handleOfficeDeposit = async () => {
+        if (activeEntryTotal === 0) return;
+        const overspentKeys = ALL_DENOMS.filter(d => Number(depositCounts[d.key] || 0) > officeInventory.remaining.denoms[d.key]);
+        if (overspentKeys.length > 0) return MySwal.fire('Inventory Breach', `Over-limit on ${overspentKeys[0].label}.`, 'error');
+        const confirmed = await confirmAction({ title: "Finalize Deposit?", text: `Deposit ₹${fmt(activeEntryTotal)} to bank?`, confirmText: "Confirm", variant: "info" });
+        if (!confirmed) return;
+        const newD = { id: Date.now(), date: new Date().toISOString(), amount: activeEntryTotal, breakdown: { ...depositCounts } };
+        const updated = [newD, ...deposits];
+        setDeposits(updated);
+        localStorage.setItem(`office_deposits_${selectedSeason}`, JSON.stringify(updated));
+        setDepositCounts(Object.fromEntries(ALL_DENOMS.map(d => [d.key, ''])));
+    };
+
+    const removeDeposit = async (id) => {
+        const confirmed = await confirmAction({ title: "Revoke?", text: "Restore vault counts?", confirmText: "Delete", variant: "warning" });
+        if (confirmed) {
+            const updated = deposits.filter(d => d.id !== id);
+            setDeposits(updated);
+            localStorage.setItem(`office_deposits_${selectedSeason}`, JSON.stringify(updated));
+        }
+    };
+
+    const renderRows = (group, countsMap, mode) => group.map(d => {
+        const remaining = officeInventory.remaining.denoms[d.key];
+        const isOfficeMode = !selectedTeamId;
+        const overLimit = isOfficeMode && Number(countsMap[d.key] || 0) > remaining;
+        return (
+            <div key={d.key} className="relative flex flex-col gap-1 py-4 border-b border-slate-50 last:border-0 group">
+                <div className="flex items-center gap-4">
+                    <div className="w-16 md:w-20"><span className="text-sm font-black text-slate-400 group-hover:text-slate-900 transition-colors">{d.label.replace('₹','')}</span></div>
+                    <div className="flex-1">
+                        <div className="relative">
+                            <input type="number" min="0" className={`w-full border rounded-lg px-4 py-3 text-sm font-black transition-all outline-none ${overLimit ? 'bg-rose-50 border-rose-200 text-rose-600 focus:border-rose-500' : 'bg-slate-50 border-slate-100 text-[#0F3B66] focus:bg-white focus:border-[#1E5FA8]'}`} value={countsMap[d.key]} onChange={(e) => handleCountChange(d.key, e.target.value, mode)} />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">pcs</div>
+                        </div>
+                    </div>
+                    <div className="w-24 md:w-32 text-right"><span className="text-xs font-medium text-slate-400">₹</span><span className="text-base font-black text-slate-900 ml-1">{fmt((Number(countsMap[d.key]) || 0) * d.value)}</span></div>
+                </div>
+                {isOfficeMode && (
+                    <div className="flex justify-between items-center ml-16 md:ml-20 mt-1">
+                        <div className="flex items-center gap-2">
+                             <div className={`w-1.5 h-1.5 rounded-full ${remaining > 0 ? 'bg-emerald-400' : 'bg-slate-200'}`}></div>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">In Safe: <span className={`${remaining > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{remaining} pcs</span></span>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    });
 
     return (
-        <div className="h-[100dvh] bg-white font-sans text-slate-900 flex flex-col overflow-hidden">
-            <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 md:px-8 py-6 md:py-10 overflow-hidden">
-
-                {/* ── Header (Hidden on Print) ── */}
-                <div className="flex-none flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-10 print:hidden">
-                    <div className="flex items-start gap-4">
-                        <button
-                            onClick={() => navigate('/reports')}
-                            className="group p-2.5 rounded-full border border-slate-100 text-slate-400 hover:border-slate-300 hover:text-slate-900 transition-all mt-1 md:mt-0"
-                        >
-                            <ArrowLeft size={16} />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-light text-slate-900 tracking-tight">Denomination Analysis</h1>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Audit Summary</p>
+        <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 font-sans print:bg-white print:p-8">
+            <div className="max-w-7xl mx-auto">
+                <div className="print:hidden">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 pb-6 border-b border-slate-100">
+                        <div className="flex items-center gap-5">
+                            <button onClick={() => navigate('/reports')} className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-[#0F3B66] transition-all"><ArrowLeft size={20} /></button>
+                            <div>
+                                <h1 className="text-3xl font-black text-[#0F3B66] tracking-tight">Denomination Report</h1>
+                                <p className="text-sm font-medium text-slate-500 mt-0.5 uppercase tracking-widest flex items-center gap-2"><Boxes size={14} /> Comprehensive Cash Controls</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="relative group min-w-[140px]">
+                                <select className="input-field py-2.5 text-[10px] pr-8" value={selectedSeason} onChange={e => setSelectedSeason(e.target.value)}>
+                                    {seasons.map(s => <option key={s._id} value={s._id}>{s.name} {s.isActive ? 'ACTIVE' : ''}</option>)}
+                                </select>
+                            </div>
+                            <button onClick={() => window.print()} className="btn-primary flex items-center gap-2 bg-[#1E5FA8]"><Printer size={18} /></button>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative group flex-1 md:flex-none">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-hover:text-slate-500 transition-colors" size={14} />
-                            <select
-                                className="w-full md:w-auto pl-9 pr-8 py-2 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-black text-slate-600 uppercase tracking-widest outline-none focus:bg-white focus:border-slate-300 transition-all appearance-none cursor-pointer"
-                                value={selectedSeason}
-                                onChange={e => setSelectedSeason(e.target.value)}
-                            >
-                                {seasons.map(s => (
-                                    <option key={s._id} value={s._id}>{s.name} {s.isActive ? 'ACTIVE' : ''}</option>
-                                ))}
-                            </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                        <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 border-l-4 border-l-[#1E5FA8]">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Received (Handovers)</p>
+                            <h3 className="text-2xl font-black text-[#0F3B66]">₹{fmt(officeInventory.received.val)}</h3>
+                        </div>
+                        <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 border-l-4 border-l-[#F59E0B]">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Advances Distribution</p>
+                            <h3 className="text-2xl font-black text-[#F59E0B]">₹{fmt(officeInventory.advances)}</h3>
+                        </div>
+                        <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 border-l-4 border-l-emerald-500">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Deposited to Bank</p>
+                            <h3 className="text-2xl font-black text-emerald-600">₹{fmt(officeInventory.deposited.val)}</h3>
+                        </div>
+                        <div className="bg-[#0F3B66] p-7 rounded-[2rem] shadow-xl shadow-[#0F3B66]/20 transition-all duration-300">
+                            <p className="text-[10px] font-black text-blue-300 uppercase tracking-widest mb-2">Grand Total Safe Balance</p>
+                            <h3 className="text-2xl font-black text-white">₹{fmt(officeInventory.remaining.val)}</h3>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <div className="lg:col-span-4 space-y-6">
+                            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block mb-4">Workflow Focus</label>
+                                <select className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-black text-[#0F3B66]" value={selectedTeamId} onChange={e => setSelectedTeamId(e.target.value)}>
+                                    <option value="">Central Vault Management</option>
+                                    {teams.map(t => <option key={t._id} value={t._id}>{t.isLocked ? '🔒' : '🕒'} {t.placeName}</option>)}
+                                </select>
+                            </div>
+
+                            {!selectedTeamId && (
+                                <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2"><History size={16} /> Audit Record Log</h3>
+                                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {deposits.length === 0 ? <div className="text-center py-10 text-slate-300 italic text-sm">Waiting for entries...</div> : deposits.map(d => (
+                                            <div key={d.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">{new Date(d.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                                    <p className="text-sm font-black text-[#0F3B66]">₹{fmt(d.amount)}</p>
+                                                </div>
+                                                <button onClick={() => removeDeposit(d.id)} className="p-2 text-slate-200 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={16} /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="relative group flex-1 md:flex-none">
-                            <select
-                                className="w-full md:w-auto pl-4 pr-8 py-2 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-black text-slate-600 uppercase tracking-widest outline-none focus:bg-white focus:border-slate-300 transition-all appearance-none cursor-pointer"
-                                value={selectedTeamId}
-                                onChange={e => setSelectedTeamId(e.target.value)}
-                            >
-                                <option value="">All Teams (Consolidated)</option>
-                                {teams.map(t => (
-                                    <option key={t._id} value={t._id}>{t.placeName} ({t.state})</option>
-                                ))}
-                            </select>
+                        <div className="lg:col-span-8">
+                            <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
+                                <div className="p-8 md:p-10">
+                                    <h2 className="text-2xl font-black text-[#0F3B66] mb-10 flex items-center gap-4">
+                                        <div className={`p-4 rounded-2xl ${selectedTeamId ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-[#1E5FA8]'}`}><Landmark size={24} /></div>
+                                        <div>{selectedTeamId ? `Team Audit: ${teamData?.placeName}` : 'Physical Denomination Entry'}<p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inventory Reconcilation</p></div>
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                                        <div>
+                                            <div className="pb-2 mb-4 border-b border-slate-100 flex items-center gap-2"><Banknote size={16} className="text-slate-300" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paper Notes</h4></div>
+                                            {renderRows(NOTE_DENOMS, selectedTeamId ? counts : depositCounts, selectedTeamId ? 'team' : 'office')}
+                                        </div>
+                                        <div>
+                                            <div className="pb-2 mb-4 border-b border-slate-100 flex items-center gap-2"><Coins size={16} className="text-slate-300" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vault Coins</h4></div>
+                                            {renderRows(COIN_DENOMS, selectedTeamId ? counts : depositCounts, selectedTeamId ? 'team' : 'office')}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-50 p-8 md:p-10 border-t border-slate-100">
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+                                        <div className="flex flex-wrap gap-10">
+                                            {selectedTeamId ? (
+                                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audit Status</p><p className={`text-2xl font-black ${teamDiff === 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{teamDiff === 0 ? 'SYNCHRONIZED' : `${teamDiff > 0 ? '+' : ''}${fmt(teamDiff)}`}</p></div>
+                                            ) : (
+                                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Post-Deposit Vault Balance</p><p className="text-2xl font-black text-[#1E5FA8]">₹{fmt(officeInventory.remaining.val - activeEntryTotal)}</p></div>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={selectedTeamId ? handleTeamSync : handleOfficeDeposit}
+                                            disabled={isSaving || (selectedTeamId ? (teamData?.isLocked && !isAdmin) : activeEntryTotal === 0)}
+                                            className={`flex items-center justify-center gap-3 px-12 py-5 rounded-[2rem] font-bold text-sm shadow-xl transition-all ${selectedTeamId ? ((teamData?.isLocked && !isAdmin) ? 'bg-emerald-50 text-emerald-600 shadow-none' : 'bg-[#1E5FA8] text-white hover:bg-[#0F3B66]') : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200'} disabled:opacity-50`}
+                                        >
+                                             {selectedTeamId ? (teamData?.isLocked && !isAdmin ? <><CheckCircle2 size={18} /> Verified</> : <><Send size={18} /> Sync Counts</>) : <><Landmark size={18} /> Finalize Deposit</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => window.print()}
-                            className="p-2 border border-slate-900 text-slate-900 rounded-lg hover:bg-slate-900 hover:text-white transition-all"
-                        >
-                            <Printer size={16} />
-                        </button>
                     </div>
                 </div>
 
-                {/* ── Stats Row (Static) ── */}
-                <div id="report-summary" className="flex-none grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 mb-8 print:hidden">
-                    <div className="border-l border-slate-100 pl-4 py-1">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Currency</p>
-                        <p className="text-lg md:text-xl font-light text-slate-900">₹{fmt(noteTotal)}</p>
-                    </div>
-                    <div className="border-l border-slate-100 pl-4 py-1">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Coins</p>
-                        <p className="text-lg md:text-xl font-light text-slate-900">₹{fmt(coinTotal)}</p>
-                    </div>
-                </div>
+                {/* ── CLEAN PRINT REPORT (Consistently Calculated Sum) ── */}
+                <div className="hidden print:block font-serif">
+                    <br />
+                    <br />
+                    <br />
+                    <br />
 
-                {/* ── Scrollable Area (The Table) ── */}
-                <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-hide print:overflow-visible print:pr-0 print:mr-0">
-                    <div className="space-y-10">
-                        {/* Print Header (Only visible when printing) */}
-                        <div className="hidden print:block mb-6">
-                            <h1 className="text-xl font-bold">Denomination Report</h1>
-                            <p className="text-sm text-slate-500">{seasons.find(s => s._id === selectedSeason)?.name}</p>
-                        </div>
-
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr id="report-table" className="border-b border-slate-100 italic">
-                                    <th className="pb-4 text-left text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Unit</th>
-                                    <th className="pb-4 text-center text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Inv</th>
-                                    <th className="pb-4 text-right text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Value</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                <tr id="denom-notes" className="bg-slate-50/30"><td colSpan={3} className="py-3 px-2 text-[8px] font-black text-slate-400 uppercase tracking-[0.4em]">Notes</td></tr>
-                                {noteRows.map(row => (
-                                    <tr key={row.key} className="group">
-                                        <td className="py-4 md:py-6 px-2"><span className="text-base md:text-lg font-light text-slate-900">{row.label}</span></td>
-                                        <td className="py-4 md:py-6 text-center font-light text-slate-600 text-sm">{row.count}</td>
-                                        <td className="py-4 md:py-6 text-right font-light text-slate-900 text-base md:text-lg">₹{fmt(row.amount)}</td>
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="border-b border-slate-300 text-slate-900 uppercase tracking-widest text-[9px]">
+                                <th className="py-2 text-left px-2">Denomination</th>
+                                <th className="py-2 text-center">Remaining Count</th>
+                                <th className="py-2 text-right px-2">Total Value</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {ALL_DENOMS.map(d => {
+                                const count = officeInventory.remaining.denoms[d.key];
+                                if (count === 0) return null;
+                                return (
+                                    <tr key={d.key} className="text-slate-900">
+                                        <td className="py-4 px-2 font-bold text-sm">{d.label}</td>
+                                        <td className="py-4 text-center font-bold text-sm">{fmt(count)} pcs</td>
+                                        <td className="py-4 px-2 text-right font-black text-sm">₹{fmt(count * d.value)}</td>
                                     </tr>
-                                ))}
-                                <tr id="denom-coins" className="bg-slate-50/30"><td colSpan={3} className="py-3 px-2 text-[8px] font-black text-slate-400 uppercase tracking-[0.4em]">Coins</td></tr>
-                                {coinRows.map(row => (
-                                    <tr key={row.key} className="group">
-                                        <td className="py-4 md:py-6 px-2"><span className="text-base md:text-lg font-light text-slate-900">₹{row.label}</span></td>
-                                        <td className="py-4 md:py-6 text-center font-light text-slate-600 text-sm">{row.count}</td>
-                                        <td className="py-4 md:py-6 text-right font-light text-slate-900 text-base md:text-lg">₹{fmt(row.amount)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                );
+                            })}
+                        </tbody>
+                        <tfoot>
+                            <tr className="border-t-4 border-double border-slate-900">
+                                <td colSpan="2" className="py-10 px-2 text-right">
+                                    <span className="text-lg font-black uppercase italic text-slate-900">Grand Total </span>
+                                </td>
+                                <td className="py-10 px-2 text-right">
+                                    <span className="text-3xl font-black text-slate-900 border-b-2 border-slate-900 pb-1">₹{fmt(officeInventory.remaining.val)}</span>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
 
-                {/* ── Grand Total (Fixed Bottom) ── */}
-                <div className="flex-none pt-6 border-t-2 border-slate-900 mt-4 print:mt-10">
-                    <div className="flex flex-row justify-between items-end mb-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-slate-900 rounded-full"></div>
-                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-[0.4em]">Grand Total</p>
-                        </div>
-                        <p className="text-4xl md:text-3xl font-light text-slate-900 tracking-tighter">
-                            <span className="text-xl md:text-2xl mr-1 text-slate-300">₹</span>{fmt(grandTotal)}
-                        </p>
-                    </div>
+                    <div className="mt-20 flex justify-between items-end px-2">
+                       </div>
                 </div>
             </div>
-
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .scrollbar-hide::-webkit-scrollbar { display: none; }
-                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-                @media print {
-                    @page { margin: 20mm; }
-                    body { background: white; }
-                    .h-\\[100dvh\\] { height: auto !important; overflow: visible !important; }
-                    .overflow-y-auto { overflow: visible !important; }
-                    .max-w-4xl { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
-                    /* Force colors to print */
-                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                }
-            `}} />
+            <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: portrait; margin: 1.5cm; } body { background: white !important; } .print\\:hidden { display: none !important; } .print\\:block { display: block !important; } } .custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }`}} />
         </div>
     );
 }
