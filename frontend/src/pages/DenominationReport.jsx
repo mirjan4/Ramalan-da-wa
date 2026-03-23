@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { teamService, seasonService, settlementService } from '../services/api';
+import { teamService, seasonService, settlementService, depositService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Printer, Filter, Banknote, Coins, Wallet, CheckCircle2, AlertCircle, Save, Lock, ArrowUpDown, LayoutGrid, History, Send, Landmark, Trash2, Boxes, HandCoins
@@ -58,10 +58,19 @@ export default function DenominationReport() {
 
     useEffect(() => {
         if (selectedSeason) {
-            const saved = localStorage.getItem(`office_deposits_${selectedSeason}`);
-            setDeposits(saved ? JSON.parse(saved) : []);
             setLoading(true);
-            teamService.getAll(selectedSeason).then(res => setTeams(res.data)).finally(() => setLoading(false));
+            Promise.all([
+                teamService.getAll(selectedSeason),
+                depositService.getAll(selectedSeason)
+            ]).then(([teamsRes, depositsRes]) => {
+                setTeams(teamsRes.data);
+                // Handle Map/Object conversion for breakdown if needed
+                const normalizedDeposits = depositsRes.data.map(d => ({
+                    ...d,
+                    breakdown: d.breakdown instanceof Map ? Object.fromEntries(d.breakdown) : (d.breakdown || {})
+                }));
+                setDeposits(normalizedDeposits);
+            }).finally(() => setLoading(false));
         }
     }, [selectedSeason]);
 
@@ -145,37 +154,56 @@ export default function DenominationReport() {
 
     const handleOfficeDeposit = async () => {
         if (activeEntryTotal === 0) return;
-        const overspentKeys = ALL_DENOMS.filter(d => Number(depositCounts[d.key] || 0) > officeInventory.remaining.denoms[d.key]);
-        if (overspentKeys.length > 0) return MySwal.fire('Inventory Breach', `Over-limit on ${overspentKeys[0].label}.`, 'error');
         const confirmed = await confirmAction({ title: "Finalize Deposit?", text: `Deposit ₹${fmt(activeEntryTotal)} to bank?`, confirmText: "Confirm", variant: "info" });
         if (!confirmed) return;
-        const newD = { id: Date.now(), date: new Date().toISOString(), amount: activeEntryTotal, breakdown: { ...depositCounts } };
-        const updated = [newD, ...deposits];
-        setDeposits(updated);
-        localStorage.setItem(`office_deposits_${selectedSeason}`, JSON.stringify(updated));
-        setDepositCounts(Object.fromEntries(ALL_DENOMS.map(d => [d.key, ''])));
+        
+        setIsSaving(true);
+        try {
+            const res = await depositService.create({
+                season: selectedSeason,
+                amount: activeEntryTotal,
+                date: new Date().toISOString(),
+                breakdown: depositCounts
+            });
+            
+            const newDeposit = {
+                ...res.data,
+                breakdown: res.data.breakdown instanceof Map ? Object.fromEntries(res.data.breakdown) : (res.data.breakdown || {})
+            };
+            
+            setDeposits(prev => [newDeposit, ...prev]);
+            setDepositCounts(Object.fromEntries(ALL_DENOMS.map(d => [d.key, ''])));
+            MySwal.fire({ title: 'Deposited', icon: 'success', timer: 1500, showConfirmButton: false });
+        } catch (err) {
+            MySwal.fire('Error', 'Deposit failed', 'error');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const removeDeposit = async (id) => {
         const confirmed = await confirmAction({ title: "Revoke?", text: "Restore vault counts?", confirmText: "Delete", variant: "warning" });
         if (confirmed) {
-            const updated = deposits.filter(d => d.id !== id);
-            setDeposits(updated);
-            localStorage.setItem(`office_deposits_${selectedSeason}`, JSON.stringify(updated));
+            try {
+                await depositService.delete(id);
+                setDeposits(prev => prev.filter(d => d._id !== id));
+                MySwal.fire({ title: 'Revoked', icon: 'success', timer: 1500, showConfirmButton: false });
+            } catch (err) {
+                MySwal.fire('Error', 'Failed to delete', 'error');
+            }
         }
     };
 
     const renderRows = (group, countsMap, mode) => group.map(d => {
         const remaining = officeInventory.remaining.denoms[d.key];
         const isOfficeMode = !selectedTeamId;
-        const overLimit = isOfficeMode && Number(countsMap[d.key] || 0) > remaining;
         return (
             <div key={d.key} className="relative flex flex-col gap-1 py-4 border-b border-slate-50 last:border-0 group">
                 <div className="flex items-center gap-4">
                     <div className="w-16 md:w-20"><span className="text-sm font-black text-slate-400 group-hover:text-slate-900 transition-colors">{d.label.replace('₹','')}</span></div>
                     <div className="flex-1">
                         <div className="relative">
-                            <input type="number" min="0" className={`w-full border rounded-lg px-4 py-3 text-sm font-black transition-all outline-none ${overLimit ? 'bg-rose-50 border-rose-200 text-rose-600 focus:border-rose-500' : 'bg-slate-50 border-slate-100 text-[#0F3B66] focus:bg-white focus:border-[#1E5FA8]'}`} value={countsMap[d.key]} onChange={(e) => handleCountChange(d.key, e.target.value, mode)} />
+                            <input type="number" min="0" className="w-full border rounded-lg px-4 py-3 text-sm font-black transition-all outline-none bg-slate-50 border-slate-100 text-[#0F3B66] focus:bg-white focus:border-[#1E5FA8]" value={countsMap[d.key]} onChange={(e) => handleCountChange(d.key, e.target.value, mode)} />
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300"></div>
                         </div>
                     </div>
@@ -249,12 +277,12 @@ export default function DenominationReport() {
                                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2"><History size={16} /> Audit Record Log</h3>
                                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                         {deposits.length === 0 ? <div className="text-center py-10 text-slate-300 italic text-sm">Waiting for entries...</div> : deposits.map(d => (
-                                            <div key={d.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
+                                            <div key={d._id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">{new Date(d.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                                     <p className="text-sm font-black text-[#0F3B66]">₹{fmt(d.amount)}</p>
                                                 </div>
-                                                <button onClick={() => removeDeposit(d.id)} className="p-2 text-slate-200 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={16} /></button>
+                                                <button onClick={() => removeDeposit(d._id)} className="p-2 text-slate-200 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={16} /></button>
                                             </div>
                                         ))}
                                     </div>

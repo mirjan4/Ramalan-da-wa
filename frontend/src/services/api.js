@@ -72,4 +72,10 @@ export const fieldDataService = {
     lockBySeason: (seasonId, isLocked) => api.put(`/field-data/season/${seasonId}/lock`, { isLocked }),
 };
 
+export const depositService = {
+    getAll: (seasonId) => api.get('/deposits', { params: { seasonId } }),
+    create: (data) => api.post('/deposits', data),
+    delete: (id) => api.delete(`/deposits/${id}`),
+};
+
 export default api;

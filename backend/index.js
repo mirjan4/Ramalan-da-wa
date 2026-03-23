@@ -35,6 +35,7 @@ import teamRoutes from './routes/team.js';
 import settlementRoutes from './routes/settlement.js';
 import dashboardRoutes from './routes/dashboard.js';
 import fieldDataRoutes from './routes/fieldData.js';
+import depositRoutes from './routes/deposit.js';
 
 app.get('/', (req, res) => {
     res.json({ message: "Ramalan Da'wa API is running" });
@@ -60,6 +61,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/settlements', settlementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/field-data', fieldDataRoutes);
+app.use('/api/deposits', depositRoutes);
 
 // MongoDB Connection
 // MongoDB Connection via Global Cache (Vercel/Serverless Safe)
