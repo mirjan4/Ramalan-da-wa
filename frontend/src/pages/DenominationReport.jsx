@@ -176,7 +176,7 @@ export default function DenominationReport() {
                     <div className="flex-1">
                         <div className="relative">
                             <input type="number" min="0" className={`w-full border rounded-lg px-4 py-3 text-sm font-black transition-all outline-none ${overLimit ? 'bg-rose-50 border-rose-200 text-rose-600 focus:border-rose-500' : 'bg-slate-50 border-slate-100 text-[#0F3B66] focus:bg-white focus:border-[#1E5FA8]'}`} value={countsMap[d.key]} onChange={(e) => handleCountChange(d.key, e.target.value, mode)} />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">pcs</div>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300"></div>
                         </div>
                     </div>
                     <div className="w-24 md:w-32 text-right"><span className="text-xs font-medium text-slate-400">₹</span><span className="text-base font-black text-slate-900 ml-1">{fmt((Number(countsMap[d.key]) || 0) * d.value)}</span></div>
@@ -185,7 +185,7 @@ export default function DenominationReport() {
                     <div className="flex justify-between items-center ml-16 md:ml-20 mt-1">
                         <div className="flex items-center gap-2">
                              <div className={`w-1.5 h-1.5 rounded-full ${remaining > 0 ? 'bg-emerald-400' : 'bg-slate-200'}`}></div>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">In Safe: <span className={`${remaining > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{remaining} pcs</span></span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">In Safe: <span className={`${remaining > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{remaining}</span></span>
                         </div>
                     </div>
                 )}
@@ -325,7 +325,7 @@ export default function DenominationReport() {
                                 return (
                                     <tr key={d.key} className="text-slate-900">
                                         <td className="py-4 px-2 font-bold text-sm">{d.label}</td>
-                                        <td className="py-4 text-center font-bold text-sm">{fmt(count)} pcs</td>
+                                        <td className="py-4 text-center font-bold text-sm">{fmt(count)}</td>
                                         <td className="py-4 px-2 text-right font-black text-sm">₹{fmt(count * d.value)}</td>
                                     </tr>
                                 );
