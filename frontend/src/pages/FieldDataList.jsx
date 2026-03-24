@@ -326,7 +326,7 @@ export default function FieldDataList() {
                             onClick={() => navigate('/field-data/new')}
                             className="btn-primary flex items-center gap-2 px-6"
                         >
-                            <Plus size={18} /> <span className="font-bold">New Registry</span>
+                            <Plus size={18} /> <span className="font-bold">Add</span>
                         </button>
 
                         {isAdmin && (

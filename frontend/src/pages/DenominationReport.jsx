@@ -253,7 +253,7 @@ export default function DenominationReport() {
                             <h3 className="text-2xl font-black text-[#F59E0B]">₹{fmt(officeInventory.advances)}</h3>
                         </div>
                         <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 border-l-4 border-l-emerald-500">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Deposited to Bank</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Deposited to Cashier</p>
                             <h3 className="text-2xl font-black text-emerald-600">₹{fmt(officeInventory.deposited.val)}</h3>
                         </div>
                         <div className="bg-[#0F3B66] p-7 rounded-[2rem] shadow-xl shadow-[#0F3B66]/20 transition-all duration-300">

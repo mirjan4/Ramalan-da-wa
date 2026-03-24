@@ -124,7 +124,7 @@ export default function FieldDataForm() {
                 onClick={() => navigate('/field-data')}
                 className="flex items-center gap-2 text-slate-500 hover:text-[#1E5FA8] font-bold text-sm mb-6 transition-colors"
             >
-                <ArrowLeft size={16} /> Return to Registry
+                <ArrowLeft size={16} /> Back
             </button>
 
             <div className="glass-card bg-white p-6 md:p-8 border-none shadow-xl">
@@ -153,7 +153,7 @@ export default function FieldDataForm() {
                     {/* Location Section */}
                     <div className="space-y-4">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
-                            <Building2 size={12} className="text-[#1E5FA8]" /> Location Parameters
+                            <Building2 size={12} className="text-[#1E5FA8]" /> Location 
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -214,7 +214,7 @@ export default function FieldDataForm() {
                     {/* Contact Person Section */}
                     <div className="space-y-4">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
-                            <User size={12} className="text-[#1E5FA8]" /> Primary Correspondent
+                            <User size={12} className="text-[#1E5FA8]" /> Contact Person Details
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-1">
@@ -255,11 +255,11 @@ export default function FieldDataForm() {
                     {/* Additional Info */}
                     <div className="space-y-4">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
-                            <FileText size={12} className="text-[#1E5FA8]" /> Historical Metadata
+                            <FileText size={12} className="text-[#1E5FA8]" /> Collection Details
                         </h3>
                         <div className="grid grid-cols-1 gap-4">
                             <div>
-                                <label className="label">Collection History (Years)</label>
+                                <label className="label">Collection</label>
                                 <input
                                     type="number"
                                     className="input-field"
@@ -295,7 +295,7 @@ export default function FieldDataForm() {
                             className="flex-[2] btn-primary flex items-center justify-center gap-2"
                         >
                             {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                            {isEditMode ? 'Authorize Update' : 'Finalize Entry'}
+                            {isEditMode ? 'Update' : 'Submit'}
                         </button>
                     </div>
 
