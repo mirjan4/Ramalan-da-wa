@@ -85,9 +85,10 @@ export default function FieldDataForm() {
         setError('');
 
         try {
-            if (!activeSeason) throw new Error("No active season found");
+            if (!activeSeason && !formData.season) throw new Error("No active season found");
 
-            const payload = { ...formData, season: activeSeason._id };
+            const seasonId = isEditMode ? (formData.season?._id || formData.season || activeSeason?._id) : activeSeason?._id;
+            const payload = { ...formData, season: seasonId };
 
             if (isEditMode) {
                 await fieldDataService.update(id, payload);

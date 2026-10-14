@@ -1,22 +1,23 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fieldDataService, seasonService, userService } from '../services/api';
+import { fieldDataService, seasonService, teamService } from '../services/api';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import {
     MapPin, Plus, Search, FileText, Lock, Globe, Phone, User, Users, Trash2,
     LayoutGrid, List, ArrowUpDown, SortAsc, SortDesc, Filter,
     BarChart2, TrendingUp, CheckCircle2, ClipboardList,
-    ChevronLeft, ChevronRight, AlertCircle, UserX, X
+    ChevronLeft, ChevronRight, AlertCircle, UserX, X, Calendar
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { confirmDelete, confirmAction } from '../utils/swal';
 
 export default function FieldDataList() {
     const [fieldData, setFieldData] = useState([]);
-    const [allUsers, setAllUsers] = useState([]);
+    const [seasonTeams, setSeasonTeams] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeSeason, setActiveSeason] = useState(null);
+    const [seasons, setSeasons] = useState([]);
+    const [selectedSeason, setSelectedSeason] = useState('');
     const [viewType, setViewType] = useState('grid'); // 'grid' or 'report'
     const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
     const [selectedTeam, setSelectedTeam] = useState('all');
@@ -55,28 +56,31 @@ export default function FieldDataList() {
             .sort((a, b) => b.count - a.count);
     }, [filteredData]);
 
-    // Summary Statistics (Memoized based on filtered data)
+    // Identify which teams in this season have submitted field data
+    const activeTeamIds = useMemo(() => {
+        const ids = new Set();
+        fieldData.forEach(item => {
+            const creator = (item.createdBy?.displayName || item.createdBy?.username || '').trim().toLowerCase();
+            const place = (item.place || '').trim().toLowerCase();
+
+            seasonTeams.forEach(t => {
+                const tPlace = (t.placeName || '').trim().toLowerCase();
+                if (tPlace && (tPlace === creator || tPlace === place)) {
+                    ids.add(String(t._id));
+                }
+            });
+        });
+        return ids;
+    }, [fieldData, seasonTeams]);
+
+    // Summary Statistics (Memoized based on filtered data and season teams)
     const stats = useMemo(() => {
         if (!isAdmin) return { totalEntries: 0, activeTeams: 0, inactiveCount: 0, totalTeams: 0, totalCollection: 0 };
 
         const totalEntries = filteredData.length;
-
-        // 1. Get ONLY the "data_collector" users (exclude admins)
-        const teamUsers = allUsers.filter(u => u.role !== 'admin');
-        const totalTeams = teamUsers.length;
-
-        // 2. Identify which of these team users actually have entries
-        const activeUserIdsFromFieldData = new Set(
-            fieldData.map(item => String(item.createdBy?._id || item.createdBy?.username))
-        );
-
-        // Active Teams: Users who have at least one entry
-        const activeTeams = teamUsers.filter(u =>
-            activeUserIdsFromFieldData.has(String(u._id)) || activeUserIdsFromFieldData.has(String(u.username))
-        ).length;
-
-        // 3. Inactive Teams = Teams with zero collection records
-        const inactiveCount = totalTeams - activeTeams;
+        const totalTeams = seasonTeams.length;
+        const activeTeams = activeTeamIds.size;
+        const inactiveCount = Math.max(0, totalTeams - activeTeams);
 
         const totalCollection = filteredData.reduce((acc, item) => {
             const val = parseFloat(String(item.yearsOfCollection || '').replace(/[^0-9.]/g, '') || 0);
@@ -84,26 +88,22 @@ export default function FieldDataList() {
         }, 0);
 
         return { totalEntries, activeTeams, inactiveCount, totalTeams, totalCollection };
-    }, [filteredData, fieldData, allUsers, isAdmin]);
+    }, [filteredData, seasonTeams, activeTeamIds, isAdmin]);
 
-    // Inactive Teams Detail (Memoized)
+    // Inactive Teams Detail (Memoized based on season's actual teams)
     const inactiveTeamsDetail = useMemo(() => {
-        if (!isAdmin) return [];
+        if (!isAdmin || seasonTeams.length === 0) return [];
 
-        const activeUserIds = new Set(
-            fieldData.map(item => String(item.createdBy?._id || item.createdBy?.username))
-        );
-
-        const teamUsers = allUsers.filter(u => u.role !== 'admin');
-
-        return teamUsers.filter(u =>
-            !activeUserIds.has(String(u._id)) && !activeUserIds.has(String(u.username))
-        ).map(u => ({
-            id: u._id,
-            name: u.displayName || u.username,
-            member: 'Team Member'
-        }));
-    }, [fieldData, allUsers, isAdmin]);
+        return seasonTeams
+            .filter(t => !activeTeamIds.has(String(t._id)))
+            .map(t => ({
+                id: t._id,
+                name: `${t.placeName}${t.state ? ` (${t.state})` : ''}`,
+                member: t.members && t.members.length > 0
+                    ? t.members.map(m => m.name).join(', ')
+                    : 'Team Unit'
+            }));
+    }, [seasonTeams, activeTeamIds, isAdmin]);
 
     // Unique Teams/Users for Filter
     const uniqueUsers = useMemo(() => {
@@ -167,6 +167,10 @@ export default function FieldDataList() {
         return sortConfig.direction === 'asc' ? <SortAsc size={14} className="text-[#1E5FA8]" /> : <SortDesc size={14} className="text-[#1E5FA8]" />;
     };
 
+    const currentSeason = useMemo(() => {
+        return seasons.find(s => s._id === selectedSeason) || null;
+    }, [seasons, selectedSeason]);
+
     useEffect(() => {
         fetchInitialData();
     }, []);
@@ -174,19 +178,41 @@ export default function FieldDataList() {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const seasonRes = await seasonService.getActive();
-            const sid = seasonRes.data._id;
-            setActiveSeason(seasonRes.data);
+            const seasonsRes = await seasonService.getAll();
+            const seasonsList = seasonsRes.data || [];
+            setSeasons(seasonsList);
 
-            const [dataRes, usersRes] = await Promise.all([
-                fieldDataService.getAll(sid),
-                userService.getAll()
-            ]);
-
-            setFieldData(dataRes.data);
-            setAllUsers(usersRes.data);
+            const active = seasonsList.find(s => s.isActive) || seasonsList[0];
+            if (active) {
+                setSelectedSeason(active._id);
+                const [dataRes, teamsRes] = await Promise.all([
+                    fieldDataService.getAll(active._id),
+                    teamService.getAll(active._id)
+                ]);
+                setFieldData(dataRes.data || []);
+                setSeasonTeams(teamsRes.data || []);
+            }
         } catch (err) {
-            console.error("Failed to fetch data:", err);
+            console.error("Failed to fetch initial data:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSeasonChange = async (seasonId) => {
+        setSelectedSeason(seasonId);
+        setSelectedTeam('all');
+        setCurrentPage(1);
+        setLoading(true);
+        try {
+            const [dataRes, teamsRes] = await Promise.all([
+                fieldDataService.getAll(seasonId),
+                teamService.getAll(seasonId)
+            ]);
+            setFieldData(dataRes.data || []);
+            setSeasonTeams(teamsRes.data || []);
+        } catch (err) {
+            console.error("Failed to fetch season field data:", err);
         } finally {
             setLoading(false);
         }
@@ -300,7 +326,7 @@ export default function FieldDataList() {
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `field_data_${activeSeason?.name || 'export'}.xlsx`);
+        saveAs(new Blob([buffer]), `field_data_${currentSeason?.name || 'export'}.xlsx`);
     };
 
     return (
@@ -314,10 +340,21 @@ export default function FieldDataList() {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Field Data Operations</h1>
-                            <p className="text-sm font-medium text-slate-500 mt-1">
-                                Season {activeSeason ? activeSeason.name : '...'}
-                                <span className="ml-2 text-[#1E5FA8] font-bold">• {filteredData.length} records</span>
-                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <p className="text-sm font-medium text-slate-500">
+                                    Season {currentSeason ? currentSeason.name : '...'}
+                                </p>
+                                {currentSeason?.isActive ? (
+                                    <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                        Active
+                                    </span>
+                                ) : currentSeason ? (
+                                    <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                        Archived
+                                    </span>
+                                ) : null}
+                                <span className="text-sm font-bold text-[#1E5FA8]">• {filteredData.length} records</span>
+                            </div>
                         </div>
                     </div>
 
@@ -365,6 +402,30 @@ export default function FieldDataList() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
+
+                    {/* Season Selector */}
+                    {seasons.length > 0 && (
+                        <div className="relative md:w-64">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-[#1E5FA8] pointer-events-none">
+                                <Calendar size={16} />
+                                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Season</span>
+                            </div>
+                            <select
+                                value={selectedSeason}
+                                onChange={(e) => handleSeasonChange(e.target.value)}
+                                className="input-field pl-24 h-12 cursor-pointer appearance-none font-bold text-[#0F3B66]"
+                            >
+                                {seasons.map((s) => (
+                                    <option key={s._id} value={s._id}>
+                                        {s.name} {s.isActive ? '(Active)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300">
+                                <ArrowUpDown size={14} />
+                            </div>
+                        </div>
+                    )}
 
                     {isAdmin && (
                         <div className="relative md:w-80">
@@ -500,6 +561,11 @@ export default function FieldDataList() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {item.isLocked && (
+                                            <span className="p-1 px-1.5 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-1 text-[10px] font-bold" title="Locked Entry">
+                                                <Lock size={12} />
+                                            </span>
+                                        )}
                                         {isAdmin && (
                                             <button
                                                 onClick={(e) => handleDeleteClick(e, item._id)}
@@ -628,7 +694,12 @@ export default function FieldDataList() {
                                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Team Envoy</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-[#0F3B66] group-hover:text-[#1E5FA8] transition-colors">{item.masjidName}</td>
+                                            <td className="px-6 py-4 font-bold text-[#0F3B66] group-hover:text-[#1E5FA8] transition-colors">
+                                                <div className="flex items-center gap-2">
+                                                    <span>{item.masjidName}</span>
+                                                    {item.isLocked && <Lock size={12} className="text-amber-500 shrink-0" title="Locked Entry" />}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded uppercase tracking-wide">{item.place}</span>
                                             </td>

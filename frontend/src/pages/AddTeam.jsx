@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { teamService, seasonService } from '../services/api';
-import { Plus, Trash2, UserPlus, MapPin, Globe, Save, Users, Edit3 } from 'lucide-react';
+import { Plus, Trash2, UserPlus, MapPin, Globe, Save, Users, Edit3, History, Sparkles } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MySwal } from '../utils/swal';
 
@@ -14,10 +14,26 @@ export default function AddTeam() {
     members: [{ name: '', class: '', phone: '' }]
   });
   const [loading, setLoading] = useState(false);
+  const [seasons, setSeasons] = useState([]);
+  const [sourceSeasonId, setSourceSeasonId] = useState('');
+  const [sourceTeams, setSourceTeams] = useState([]);
+  const [selectedSourceTeamId, setSelectedSourceTeamId] = useState('');
+  const [loadingSourceTeams, setLoadingSourceTeams] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    seasonService.getActive().then(res => setActiveSeason(res.data));
+    seasonService.getActive().then(res => {
+      setActiveSeason(res.data);
+    });
+
+    seasonService.getAll().then(res => {
+      const all = res.data || [];
+      setSeasons(all);
+      const previous = all.filter(s => !s.isActive);
+      if (previous.length > 0) {
+        setSourceSeasonId(previous[0]._id);
+      }
+    });
 
     if (id) {
       teamService.getById(id).then(res => {
@@ -30,6 +46,43 @@ export default function AddTeam() {
       });
     }
   }, [id]);
+
+  // Fetch teams when previous season changes
+  useEffect(() => {
+    if (sourceSeasonId) {
+      setLoadingSourceTeams(true);
+      teamService.getAll(sourceSeasonId)
+        .then(res => {
+          setSourceTeams(res.data || []);
+          setSelectedSourceTeamId('');
+        })
+        .catch(err => console.error(err))
+        .finally(() => setLoadingSourceTeams(false));
+    }
+  }, [sourceSeasonId]);
+
+  const handleApplyPreviousTeam = () => {
+    if (!selectedSourceTeamId) return;
+    const team = sourceTeams.find(t => t._id === selectedSourceTeamId);
+    if (!team) return;
+
+    setFormData({
+      placeName: team.placeName,
+      state: team.state,
+      advanceAmount: 0,
+      members: team.members && team.members.length > 0
+        ? team.members.map(m => ({ name: m.name, class: m.class || '', phone: m.phone || '' }))
+        : [{ name: '', class: '', phone: '' }]
+    });
+
+    MySwal.fire({
+      title: 'Details Copied!',
+      text: `Loaded details and ${team.members?.length || 0} members from ${team.placeName}. You can adjust and register.`,
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false
+    });
+  };
 
   const addMember = () => {
     setFormData({
@@ -101,7 +154,69 @@ export default function AddTeam() {
           Warning: You cannot create a team without an active season. Please go to Season Management first.
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <>
+          {/* Quick Activate from Previous Season */}
+          {!id && seasons.filter(s => s._id !== activeSeason?._id).length > 0 && (
+            <div className="bg-gradient-to-r from-[#F0F7FF] to-white p-6 rounded-2xl border border-[#1E5FA8]/20 shadow-sm mb-8 animate-in fade-in duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-[#1E5FA8] text-white rounded-xl shadow-md">
+                  <History size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#0F3B66]">Activate from Previous Season</h3>
+                  <p className="text-xs text-slate-500">Quickly pre-fill place and members from a team deployed in a past season.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">1. Select Previous Season</label>
+                  <select
+                    value={sourceSeasonId}
+                    onChange={(e) => setSourceSeasonId(e.target.value)}
+                    className="input-field h-11 text-xs font-semibold"
+                  >
+                    <option value="">-- Choose Season --</option>
+                    {seasons.filter(s => s._id !== activeSeason?._id).map(s => (
+                      <option key={s._id} value={s._id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">2. Select Team</label>
+                  <select
+                    value={selectedSourceTeamId}
+                    onChange={(e) => setSelectedSourceTeamId(e.target.value)}
+                    disabled={!sourceSeasonId || loadingSourceTeams}
+                    className="input-field h-11 text-xs font-semibold"
+                  >
+                    <option value="">
+                      {loadingSourceTeams ? 'Loading teams...' : '-- Choose Team to Pre-fill --'}
+                    </option>
+                    {sourceTeams.map(t => (
+                      <option key={t._id} value={t._id}>
+                        {t.placeName} ({t.state}) • {t.members?.length || 0} members
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleApplyPreviousTeam}
+                    disabled={!selectedSourceTeamId}
+                    className="w-full h-11 btn-primary flex items-center justify-center gap-2 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+                  >
+                    <Sparkles size={16} /> Apply Team Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-8">
           <div className="glass-card p-8 border-none bg-white">
             <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-[#0F3B66]">
               <MapPin className="text-[#1E5FA8]" size={20} /> Operational Area Details
@@ -200,6 +315,7 @@ export default function AddTeam() {
             </button>
           </div>
         </form>
+        </>
       )}
     </div>
   );

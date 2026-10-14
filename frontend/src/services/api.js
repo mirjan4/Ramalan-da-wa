@@ -33,7 +33,9 @@ export const authService = {
 export const seasonService = {
     getAll: () => api.get('/seasons'),
     create: (data) => api.post('/seasons', data),
+    update: (id, data) => api.put(`/seasons/${id}`, data),
     activate: (id) => api.put(`/seasons/${id}/activate`),
+    delete: (id) => api.delete(`/seasons/${id}`),
     getActive: () => api.get('/seasons/active'),
 };
 
@@ -44,6 +46,7 @@ export const teamService = {
     update: (id, data) => api.put(`/teams/${id}`, data),
     assignBooks: (id, receiptBooks) => api.put(`/teams/${id}/assign-books`, { receiptBooks }),
     delete: (id) => api.delete(`/teams/${id}`),
+    copyFromSeason: (data) => api.post('/teams/copy-from-season', data),
 };
 
 export const settlementService = {

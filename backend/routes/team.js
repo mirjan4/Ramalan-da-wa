@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Team from '../models/Team.js';
 import Season from '../models/Season.js';
 import FieldData from '../models/FieldData.js';
@@ -33,6 +34,74 @@ router.get('/', async (req, res) => {
         res.json(teams);
     } catch (err) {
         console.error('Fetch teams error:', err);
+        res.status(500).json({ message: err.message || 'Server error' });
+    }
+});
+
+router.post('/copy-from-season', authenticateToken, async (req, res) => {
+    const { sourceSeasonId, targetSeasonId, teamIds } = req.body;
+    try {
+        if (!sourceSeasonId || !targetSeasonId) {
+            return res.status(400).json({ message: 'Both sourceSeasonId and targetSeasonId are required' });
+        }
+
+        const query = { season: sourceSeasonId };
+        if (teamIds && Array.isArray(teamIds) && teamIds.length > 0) {
+            const validIds = teamIds.filter(id => id && mongoose.Types.ObjectId.isValid(id));
+            query._id = { $in: validIds };
+        }
+
+        const sourceTeams = await Team.find(query);
+        if (sourceTeams.length === 0) {
+            return res.status(404).json({ message: 'No teams found in the source season' });
+        }
+
+        const existingTargetTeams = await Team.find({ season: targetSeasonId });
+        const existingPlaceNames = new Set(existingTargetTeams.map(t => t.placeName.trim().toLowerCase()));
+
+        const teamsToCreate = [];
+        for (const st of sourceTeams) {
+            const placeKey = st.placeName.trim().toLowerCase();
+            if (!existingPlaceNames.has(placeKey)) {
+                teamsToCreate.push({
+                    placeName: st.placeName,
+                    state: st.state,
+                    season: targetSeasonId,
+                    members: st.members.map(m => ({
+                        name: m.name,
+                        class: m.class,
+                        phone: m.phone
+                    })),
+                    advanceAmount: 0,
+                    totalCollection: 0,
+                    cashAmount: 0,
+                    cashRef: '',
+                    bankAmount: 0,
+                    bankRef: '',
+                    expense: 0,
+                    balance: 0,
+                    status: 'PENDING',
+                    isLocked: false,
+                    receiptBooks: []
+                });
+                existingPlaceNames.add(placeKey);
+            }
+        }
+
+        if (teamsToCreate.length === 0) {
+            return res.status(400).json({
+                message: 'All selected teams from the source season already exist in the target season.'
+            });
+        }
+
+        const createdTeams = await Team.insertMany(teamsToCreate);
+        res.status(201).json({
+            message: `Successfully activated ${createdTeams.length} team(s) in the new season.`,
+            count: createdTeams.length,
+            teams: createdTeams
+        });
+    } catch (err) {
+        console.error('Copy teams error:', err);
         res.status(500).json({ message: err.message || 'Server error' });
     }
 });
