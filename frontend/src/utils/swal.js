@@ -49,4 +49,29 @@ export const confirmAction = async ({ title, text, confirmText, variant = 'info'
     return result.isConfirmed;
 };
 
+export const confirmExport = async (
+    title = 'Are you sure you want to export?',
+    text = 'Do you want to proceed with exporting the data?'
+) => {
+    const result = await MySwal.fire({
+        title,
+        text,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Export',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        iconColor: '#1E5FA8',
+        customClass: {
+            confirmButton: 'px-6 py-2.5 rounded-xl font-bold text-white bg-[#1E5FA8] hover:bg-[#164b87] transition-all shadow-lg mx-2 cursor-pointer',
+            cancelButton: 'px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 transition-all border border-slate-200 mx-2 cursor-pointer',
+            popup: 'rounded-3xl border-none shadow-2xl p-8',
+            title: 'text-2xl font-black text-slate-900 mb-2',
+            htmlContainer: 'text-slate-500 leading-relaxed'
+        }
+    });
+
+    return result.isConfirmed;
+};
+
 export default MySwal;

@@ -52,15 +52,17 @@ export default function Navbar({ user, onMenuClick }) {
 
                 <div className="relative" ref={profileRef}>
                     <div
-                        className="flex items-center gap-3 cursor-pointer select-none p-1.5 pr-2 hover:bg-slate-50 rounded-2xl transition-all duration-300 border border-transparent hover:border-slate-100"
+                        className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none p-1.5 pr-2 sm:pr-3 hover:bg-slate-50 rounded-2xl transition-all duration-300 border border-transparent hover:border-slate-100"
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                     >
-                        <div className="w-8 h-8 bg-[#1E5FA8] text-white rounded-xl flex items-center justify-center font-bold shadow-sm shadow-blue-900/10">
-                            <User size={18} />
+                        <div className="w-8 h-8 bg-[#1E5FA8] text-white rounded-xl flex items-center justify-center font-bold shadow-sm shadow-blue-900/10 shrink-0">
+                            <User size={17} />
                         </div>
-                        <div className="text-left hidden sm:block">
-                            <p className="text-[11px] font-black text-[#0F3B66] leading-tight uppercase tracking-tight">{user?.username || 'Admin'}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                        <div className="text-left">
+                            <p className="text-[10px] sm:text-[11px] font-black text-[#0F3B66] leading-tight uppercase tracking-tight max-w-[80px] sm:max-w-none truncate">
+                                {user?.username || 'Admin'}
+                            </p>
+                            <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-tighter leading-none mt-0.5">
                                 {isDataCollector ? 'Field Envoy' : 'Admin'}
                             </p>
                         </div>

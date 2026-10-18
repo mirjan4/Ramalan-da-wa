@@ -9,6 +9,7 @@ import {
     ArrowUpDown, SortAsc, SortDesc
 } from 'lucide-react';
 import { MySwal } from '../utils/swal';
+import ExportModal from '../components/ExportModal';
 
 export default function BookReport() {
     const navigate = useNavigate();
@@ -24,6 +25,9 @@ export default function BookReport() {
 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportFields, setExportFields] = useState([]);
+    const [dynamicBankMeta, setDynamicBankMeta] = useState({ bankNames: [], hasUnallocatedBank: false });
 
     // Sorting
     const [sortConfig, setSortConfig] = useState({ key: 'bookNumber', direction: 'asc' });
@@ -77,15 +81,23 @@ export default function BookReport() {
                 const isSettled = team.isLocked; // team.isLocked is our audit settled source of truth
 
                 team.receiptBooks.forEach(book => {
-                    const usedStart = Number(book.usedStartPage) || 0;
-                    const usedEnd = Number(book.usedEndPage) || 0;
-                    const usedPages = (usedStart > 0 && usedEnd > 0) ? Math.max(0, usedEnd - usedStart + 1) : 0;
-
-                    const bookStart = Number(book.startPage) || 0;
-                    const bookEnd = Number(book.endPage) || 0;
-                    const totalPagesInBook = Math.max(0, bookEnd - bookStart + 1);
-                    const remainingPages = Math.max(0, totalPagesInBook - usedPages);
                     const collected = Number(book.collectedAmount) || 0;
+                    const bookStart = Number(book.startPage) || (Number(book.bookNumber) * 50 - 49);
+                    const bookEnd = Number(book.endPage) || (Number(book.bookNumber) * 50);
+                    const totalPagesInBook = Math.max(0, bookEnd - bookStart + 1);
+
+                    // When collection is 0, no pages are used (0 used, all remaining)
+                    let usedPages = 0;
+                    let remainingPages = totalPagesInBook;
+
+                    if (collected > 0) {
+                        const usedStart = Number(book.usedStartPage) || bookStart;
+                        const usedEnd = Number(book.usedEndPage) || bookEnd;
+                        if (usedStart > 0 && usedEnd >= usedStart) {
+                            usedPages = Math.min(totalPagesInBook, Math.max(0, usedEnd - usedStart + 1));
+                            remainingPages = Math.max(0, totalPagesInBook - usedPages);
+                        }
+                    }
 
                     let status = 'unused';
                     // 1. Conflict Check (highest priority for audit)
@@ -98,7 +110,7 @@ export default function BookReport() {
                     }
                     // 3. Settled Logic
                     else {
-                        if (usedPages === 0 || collected <= 0) {
+                        if (collected <= 0 || usedPages === 0) {
                             status = 'unused';
                         } else if (remainingPages === 0) {
                             status = 'completed';
@@ -107,12 +119,21 @@ export default function BookReport() {
                         }
                     }
 
+                    const validBanks = Array.isArray(team.bankAccounts)
+                        ? team.bankAccounts.filter(b => (b.bankName && b.bankName.trim()) || Number(b.amount) > 0)
+                        : [];
+                    const bankName = validBanks.length > 0
+                        ? validBanks.map(b => b.bankName).filter(Boolean).join(', ')
+                        : (team.bankRef ? team.bankRef.split('(')[0].trim() : (team.bankAmount > 0 ? 'Bank' : '-'));
+
                     books.push({
                         ...book,
                         teamName: String(team.placeName) + ', ' + String(team.state),
                         placeName: team.placeName,
                         state: team.state,
                         teamId: String(team._id),
+                        bankName: bankName || '-',
+                        bankAmount: Number(team.bankAmount) || 0,
                         usedPages,
                         remainingPages,
                         totalPages: totalPagesInBook,
@@ -188,19 +209,151 @@ export default function BookReport() {
         return { total, running, used, unused, completed, amount, remaining, uniqueTeams };
     }, [filteredBooks]);
 
-    const handleExportCSV = () => {
-        const headers = ['Team Name', 'State', 'Book Number', 'Start Page', 'End Page', 'Used Pages', 'Remaining', 'Collected', 'Status'];
-        const rows = sortedBooks.map(b => [
-            b.placeName,
-            b.state,
-            b.bookNumber,
-            b.startPage,
-            b.endPage,
-            b.usedPages,
-            b.remainingPages,
-            b.collectedAmount,
-            b.status.toUpperCase()
-        ]);
+    const handleOpenExportModal = () => {
+        // Collect all distinct bank names from teams
+        const bankNamesSet = new Set();
+        teams.forEach(team => {
+            if (Array.isArray(team.bankAccounts)) {
+                team.bankAccounts.forEach(b => {
+                    if (b.bankName && b.bankName.trim()) {
+                        bankNamesSet.add(b.bankName.trim());
+                    }
+                });
+            }
+        });
+        const bankNames = Array.from(bankNamesSet);
+
+        const hasUnallocatedBank = teams.some(team => {
+            const totalBank = Number(team.bankAmount) || 0;
+            if (totalBank <= 0) return false;
+            let allocated = 0;
+            if (Array.isArray(team.bankAccounts)) {
+                team.bankAccounts.forEach(b => {
+                    if (b.bankName && bankNames.some(name => name.toLowerCase() === b.bankName.trim().toLowerCase())) {
+                        allocated += (Number(b.amount) || 0);
+                    }
+                });
+            }
+            return (totalBank - allocated) > 0.01;
+        });
+
+        setDynamicBankMeta({ bankNames, hasUnallocatedBank });
+
+        const fields = [
+            { key: 'placeName', label: 'Team Name' },
+            { key: 'state', label: 'State' },
+            { key: 'bookNumber', label: 'Book Number' },
+            { key: 'startPage', label: 'Start Page' },
+            { key: 'endPage', label: 'End Page' },
+            { key: 'usedPages', label: 'Used Pages' },
+            { key: 'remainingPages', label: 'Remaining Pages' },
+            { key: 'collectedAmount', label: 'Collected Amount' },
+        ];
+
+        bankNames.forEach((bName, idx) => {
+            fields.push({
+                key: `bank_${idx}`,
+                label: bName
+            });
+        });
+
+        if (hasUnallocatedBank) {
+            fields.push({
+                key: 'bank_other',
+                label: 'Other Bank'
+            });
+        }
+
+        fields.push({
+            key: 'totalBank',
+            label: 'Total Bank'
+        });
+
+        fields.push({
+            key: 'status',
+            label: 'Status'
+        });
+
+        setExportFields(fields);
+        setShowExportModal(true);
+    };
+
+    const executeCSVExport = async (selectedKeys) => {
+        if (!selectedKeys || selectedKeys.length === 0) return;
+
+        const { bankNames, hasUnallocatedBank } = dynamicBankMeta;
+
+        const allDefs = [
+            { key: 'placeName', header: 'Team Name', getValue: (b) => `"${(b.placeName || '').replace(/"/g, '""')}"` },
+            { key: 'state', header: 'State', getValue: (b) => `"${(b.state || '').replace(/"/g, '""')}"` },
+            { key: 'bookNumber', header: 'Book Number', getValue: (b) => b.bookNumber },
+            { key: 'startPage', header: 'Start Page', getValue: (b) => b.startPage },
+            { key: 'endPage', header: 'End Page', getValue: (b) => b.endPage },
+            { key: 'usedPages', header: 'Used Pages', getValue: (b) => b.usedPages },
+            { key: 'remainingPages', header: 'Remaining', getValue: (b) => b.remainingPages },
+            { key: 'collectedAmount', header: 'Collected', getValue: (b) => b.collectedAmount },
+        ];
+
+        bankNames.forEach((bName, idx) => {
+            allDefs.push({
+                key: `bank_${idx}`,
+                header: bName,
+                getValue: (b) => {
+                    const team = teams.find(t => String(t._id) === String(b.teamId));
+                    let amt = 0;
+                    if (team && Array.isArray(team.bankAccounts)) {
+                        team.bankAccounts.forEach(acc => {
+                            if (acc.bankName && acc.bankName.trim().toLowerCase() === bName.toLowerCase()) {
+                                amt += (Number(acc.amount) || 0);
+                            }
+                        });
+                    }
+                    return amt;
+                }
+            });
+        });
+
+        if (hasUnallocatedBank) {
+            allDefs.push({
+                key: 'bank_other',
+                header: 'Other Bank',
+                getValue: (b) => {
+                    const team = teams.find(t => String(t._id) === String(b.teamId));
+                    const totalBank = team ? (Number(team.bankAmount) || 0) : (Number(b.bankAmount) || 0);
+                    let allocatedSum = 0;
+                    if (team && Array.isArray(team.bankAccounts)) {
+                        team.bankAccounts.forEach(acc => {
+                            if (acc.bankName && bankNames.some(name => name.toLowerCase() === acc.bankName.trim().toLowerCase())) {
+                                allocatedSum += (Number(acc.amount) || 0);
+                            }
+                        });
+                    }
+                    return Math.max(0, totalBank - allocatedSum);
+                }
+            });
+        }
+
+        allDefs.push({
+            key: 'totalBank',
+            header: 'Total Bank',
+            getValue: (b) => {
+                const team = teams.find(t => String(t._id) === String(b.teamId));
+                return team ? (Number(team.bankAmount) || 0) : (Number(b.bankAmount) || 0);
+            }
+        });
+
+        allDefs.push({
+            key: 'status',
+            header: 'Status',
+            getValue: (b) => b.status.toUpperCase()
+        });
+
+        const activeDefs = allDefs.filter(d => selectedKeys.includes(d.key));
+        const headers = activeDefs.map(d => `"${d.header.replace(/"/g, '""')}"`);
+
+        const rows = sortedBooks.map(b => {
+            return activeDefs.map(d => d.getValue(b));
+        });
 
         const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -211,6 +364,14 @@ export default function BookReport() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        MySwal.fire({
+            title: 'Audit Exported!',
+            text: `Receipt book audit with ${activeDefs.length} fields exported successfully.`,
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
     };
 
     const handlePrint = () => window.print();
@@ -234,40 +395,40 @@ export default function BookReport() {
     };
 
     return (
-        <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-[1600px] mx-auto min-h-screen">
             {/* Header Area */}
-            <div id="report-summary" className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 print:hidden">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
+            <div id="report-summary" className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 sm:mb-8 print:hidden">
+                <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="p-2.5 sm:p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shrink-0">
                         <BookOpen size={24} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Receipt Book Report</h1>
-                        <p className="text-sm font-medium text-slate-500 mt-1">Record of book assignments and utilization</p>
+                        <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">Receipt Book Report</h1>
+                        <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">Record of book assignments and utilization</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
-                        onClick={handleExportCSV}
-                        className="btn-secondary flex items-center gap-2"
+                        onClick={handleOpenExportModal}
+                        className="btn-secondary flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs sm:text-sm px-4 py-2 sm:py-2.5"
                     >
-                        <Download size={18} />
-                        <span className="hidden sm:inline">Export Audit</span>
+                        <Download size={16} />
+                        <span>Export Audit</span>
                     </button>
                     <button
                         onClick={() => navigate('/assign-book')}
-                        className="btn-primary flex items-center gap-2"
+                        className="btn-primary flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs sm:text-sm px-4 py-2 sm:py-2.5"
                     >
-                        <BookPlus size={18} />
-                        <span className="hidden sm:inline">Assign Books</span>
+                        <BookPlus size={16} />
+                        <span>Assign Books</span>
                     </button>
                 </div>
             </div>
 
             {/* Filters Section */}
             <div className="grid grid-cols-1 gap-6 mb-8 print:hidden">
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4 text-slate-400 font-black text-xs uppercase tracking-widest">
                         <Filter size={14} /> Advanced Filters
                     </div>
@@ -466,11 +627,11 @@ export default function BookReport() {
 
                 {/* Pagination */}
                 {sortedBooks.length > itemsPerPage && (
-                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between print:hidden">
-                        <p className="text-xs text-slate-500 font-bold">
+                    <div className="p-4 sm:px-6 sm:py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
+                        <p className="text-xs text-slate-500 font-bold text-center sm:text-left">
                             Showing <span className="text-slate-900">{((currentPage - 1) * itemsPerPage) + 1}</span> to <span className="text-slate-900">{Math.min(currentPage * itemsPerPage, sortedBooks.length)}</span> of <span className="text-slate-900">{sortedBooks.length}</span> results
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
@@ -478,7 +639,7 @@ export default function BookReport() {
                             >
                                 <ChevronLeft size={18} />
                             </button>
-                            <div className="flex items-center px-4 font-black text-xs text-[#1E5FA8]">
+                            <div className="flex items-center px-3 sm:px-4 font-black text-xs text-[#1E5FA8]">
                                 Page {currentPage} of {totalPages}
                             </div>
                             <button
@@ -513,6 +674,17 @@ export default function BookReport() {
                     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 }
             `}} />
+
+            {/* Field Selection Export Modal */}
+            <ExportModal
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                onExport={executeCSVExport}
+                fields={exportFields}
+                title="Export Data"
+                description="Choose which fields to include in the export. All fields are selected by default."
+                exportFormat="CSV"
+            />
         </div>
     );
 }

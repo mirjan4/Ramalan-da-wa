@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { teamService, seasonService } from '../services/api';
 import TeamSelect from '../components/TeamSelect';
 import { BookPlus, Trash2, Plus, Save, AlertCircle, CheckCircle } from 'lucide-react';
@@ -12,6 +12,22 @@ export default function AssignReceiptBook() {
   const [usedBooks, setUsedBooks] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Find duplicate book numbers within the current form
+  const duplicateBookNumbers = useMemo(() => {
+    const counts = {};
+    receiptBooks.forEach(b => {
+      const num = String(b.bookNumber || '').trim();
+      if (num) {
+        counts[num] = (counts[num] || 0) + 1;
+      }
+    });
+    const dupes = new Set();
+    Object.entries(counts).forEach(([num, count]) => {
+      if (count > 1) dupes.add(num);
+    });
+    return dupes;
+  }, [receiptBooks]);
 
   const handleBookReport = () => {
     navigate('/book-report');
@@ -74,6 +90,14 @@ export default function AssignReceiptBook() {
     e.preventDefault();
     if (!selectedTeamId) return MySwal.fire('Oops!', 'Please select a team first.', 'warning');
 
+    if (duplicateBookNumbers.size > 0) {
+      return MySwal.fire({
+        title: 'Duplicate Book Numbers Detected',
+        text: `Book number(s) #${Array.from(duplicateBookNumbers).join(', #')} appear more than once in this registry. Each receipt book must have a unique identifier. Please remove or change the duplicate.`,
+        icon: 'error'
+      });
+    }
+
     const hasConflicts = receiptBooks.some(b => usedBooks.has(String(b.bookNumber)));
     if (hasConflicts) return MySwal.fire({
       title: 'Conflicts Detected',
@@ -105,32 +129,33 @@ export default function AssignReceiptBook() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-10">
-        <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
-          <BookPlus size={24} />
+    <div className="p-3 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-10">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shrink-0">
+            <BookPlus size={24} />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">Receipt Book Assignment</h1>
+            <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">Assign collection ranges and book identifiers to field units</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Receipt Book Assignment</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">Assign collection ranges and book identifiers to field units</p>
-        </div>
-        <div className="ml-auto">
-          <button onClick={() => navigate('/book-report')} className="btn-secondary text-sm px-4">Audit Report</button>
+        <div className="self-end sm:self-auto">
+          <button onClick={() => navigate('/book-report')} className="btn-secondary text-xs sm:text-sm px-4 py-2">Audit Report</button>
         </div>
       </div>
 
-
-      <div className="glass-card p-8 border-none bg-white mb-8 shadow-sm">
-        <h2 className="text-sm font-bold text-[#0F3B66] uppercase tracking-widest mb-4">Target Field Unit</h2>
+      <div className="glass-card p-4 sm:p-6 lg:p-8 border-none bg-white mb-6 sm:mb-8 shadow-sm">
+        <h2 className="text-xs sm:text-sm font-bold text-[#0F3B66] uppercase tracking-widest mb-3 sm:mb-4">Target Field Unit</h2>
         <TeamSelect selectedId={selectedTeamId} onSelect={setSelectedTeamId} filterLocked={true} />
       </div>
 
       {selectedTeamId && (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="glass-card p-8 border-none bg-white">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-[#0F3B66]">Issue Registry ({receiptBooks.length})</h2>
-              <div className="flex gap-2">
+          <div className="glass-card p-4 sm:p-6 lg:p-8 border-none bg-white">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+              <h2 className="text-base sm:text-lg font-bold text-[#0F3B66]">Issue Registry ({receiptBooks.length})</h2>
+              <div className="flex flex-wrap gap-2">
                 {receiptBooks.length > 0 && (
                   <button
                     type="button"
@@ -160,7 +185,7 @@ export default function AssignReceiptBook() {
                   </button>
                 </div>
               ) : receiptBooks.map((book, idx) => (
-                <div key={idx} className="p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-4 relative">
+                <div key={idx} className="p-4 sm:p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-3 sm:gap-4 relative">
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Book Identifier</label>
                     <div className="relative">
@@ -168,7 +193,14 @@ export default function AssignReceiptBook() {
                         required
                         type="number"
                         min="1"
-                        className={`input-field font-bold ${book.isEntered || (book.collectedAmount > 0) ? 'bg-slate-100 text-slate-400 border-slate-100 grayscale cursor-not-allowed' : ''} ${usedBooks.has(String(book.bookNumber)) && !book._id ? 'border-[#EF4444] focus:ring-[#EF4444]/10 text-[#EF4444]' : ''}`}
+                        onWheel={e => e.target.blur()}
+                        className={`input-field font-bold ${book.isEntered || (book.collectedAmount > 0) ? 'bg-slate-100 text-slate-400 border-slate-100 grayscale cursor-not-allowed' : ''} ${
+                          duplicateBookNumbers.has(String(book.bookNumber || '').trim())
+                            ? 'border-[#EF4444] focus:ring-[#EF4444]/10 text-[#EF4444] bg-rose-50/40'
+                            : (usedBooks.has(String(book.bookNumber)) && !book._id)
+                              ? 'border-[#EF4444] focus:ring-[#EF4444]/10 text-[#EF4444]'
+                              : ''
+                        }`}
                         placeholder="e.g. 1"
                         value={book.bookNumber}
                         readOnly={book.isEntered || (book.collectedAmount > 0)}
@@ -180,7 +212,13 @@ export default function AssignReceiptBook() {
                           <span className="text-[9px] font-black uppercase">Settled</span>
                         </div>
                       )}
-                      {usedBooks.has(String(book.bookNumber)) && !book._id && (
+                      {duplicateBookNumbers.has(String(book.bookNumber || '').trim()) && !(book.isEntered || (book.collectedAmount > 0)) && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#EF4444] flex items-center gap-1 bg-white pl-2">
+                          <AlertCircle size={14} />
+                          <span className="text-[9px] font-black uppercase">Duplicate in List</span>
+                        </div>
+                      )}
+                      {!duplicateBookNumbers.has(String(book.bookNumber || '').trim()) && usedBooks.has(String(book.bookNumber)) && !book._id && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#EF4444] flex items-center gap-1 bg-white pl-2">
                           <AlertCircle size={14} />
                           <span className="text-[9px] font-black uppercase">Assigned</span>
@@ -193,6 +231,7 @@ export default function AssignReceiptBook() {
                     <input
                       required
                       type="number"
+                      onWheel={e => e.target.blur()}
                       className={`input-field ${book.isEntered || (book.collectedAmount > 0) ? 'bg-slate-100 text-slate-400 border-slate-100 grayscale cursor-not-allowed' : ''}`}
                       placeholder="1"
                       value={book.startPage}
@@ -205,6 +244,7 @@ export default function AssignReceiptBook() {
                     <input
                       required
                       type="number"
+                      onWheel={e => e.target.blur()}
                       className={`input-field ${book.isEntered || (book.collectedAmount > 0) ? 'bg-slate-100 text-slate-400 border-slate-100 grayscale cursor-not-allowed' : ''}`}
                       placeholder="50"
                       value={book.endPage}
@@ -228,9 +268,9 @@ export default function AssignReceiptBook() {
             <p className="mt-4 text-sm text-slate-500 italic">Note: These books are for audit tracking and do not have intrinsic values assigned here.</p>
           </div>
 
-          <div className="flex justify-end gap-4">
-            <button type="button" onClick={() => navigate('/teams')} className="btn-secondary px-8">Return</button>
-            <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2 px-10 shadow-sm">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+            <button type="button" onClick={() => navigate('/teams')} className="w-full sm:w-auto btn-secondary px-6 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm">Return</button>
+            <button type="submit" disabled={loading} className="w-full sm:w-auto btn-primary flex items-center justify-center gap-2 px-8 sm:px-10 py-2.5 sm:py-3 shadow-sm text-xs sm:text-sm">
               <Save size={18} /> {loading ? 'Processing...' : 'Save Issue Register'}
             </button>
           </div>

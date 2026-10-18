@@ -29,6 +29,11 @@ const teamSchema = new mongoose.Schema({
     cashRef: { type: String, default: '' },
     bankAmount: { type: Number, default: 0 },
     bankRef: { type: String, default: '' },
+    bankAccounts: [{
+        bankName: { type: String, default: '' },
+        amount: { type: Number, default: 0 },
+        refNo: { type: String, default: '' },
+    }],
     advanceAmount: { type: Number, default: 0 },
     expense: { type: Number, default: 0 },
     balance: { type: Number, default: 0 },

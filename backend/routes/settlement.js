@@ -17,7 +17,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 router.put('/:id/collection', authenticateToken, async (req, res) => {
-    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, denominationCounts } = req.body;
+    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, denominationCounts, bankAccounts } = req.body;
     try {
         const team = await Team.findById(req.params.id);
         if (!team) return res.status(404).json({ message: 'Team not found' });
@@ -47,11 +47,29 @@ router.put('/:id/collection', authenticateToken, async (req, res) => {
             }
         }
 
-        team.receiptBooks = receiptBooks.map(b => ({ ...b, isEntered: (Number(b.collectedAmount) > 0) }));
+        team.receiptBooks = receiptBooks.map(b => {
+            const colAmt = Number(b.collectedAmount) || 0;
+            const startP = Number(b.usedStartPage) || Number(b.startPage) || (Number(b.bookNumber) * 50 - 49);
+            const endP = colAmt > 0 ? (Number(b.usedEndPage) || startP) : startP;
+            return {
+                ...b,
+                collectedAmount: colAmt,
+                usedStartPage: startP,
+                usedEndPage: endP,
+                isEntered: colAmt > 0
+            };
+        });
         team.cashAmount = Number(cashAmount) || 0;
         team.cashRef = cashRef || '';
         team.bankAmount = Number(bankAmount) || 0;
         team.bankRef = bankRef || '';
+        if (Array.isArray(bankAccounts)) {
+            team.bankAccounts = bankAccounts.map(b => ({
+                bankName: b.bankName || '',
+                amount: Number(b.amount) || 0,
+                refNo: b.refNo || ''
+            }));
+        }
         team.totalCollection = receiptBooks.reduce((acc, book) => acc + (Number(book.collectedAmount) || 0), 0);
 
         // Save denomination counts if provided
@@ -68,7 +86,7 @@ router.put('/:id/collection', authenticateToken, async (req, res) => {
 });
 
 router.put('/:id/finalize-complete', authenticateToken, async (req, res) => {
-    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, expense, denominationCounts } = req.body;
+    const { receiptBooks, cashAmount, cashRef, bankAmount, bankRef, expense, denominationCounts, bankAccounts } = req.body;
     try {
         const team = await Team.findById(req.params.id);
         if (!team) return res.status(404).json({ message: 'Team not found' });
@@ -98,11 +116,29 @@ router.put('/:id/finalize-complete', authenticateToken, async (req, res) => {
             }
         }
 
-        team.receiptBooks = receiptBooks.map(b => ({ ...b, isEntered: (Number(b.collectedAmount) > 0) }));
+        team.receiptBooks = receiptBooks.map(b => {
+            const colAmt = Number(b.collectedAmount) || 0;
+            const startP = Number(b.usedStartPage) || Number(b.startPage) || (Number(b.bookNumber) * 50 - 49);
+            const endP = colAmt > 0 ? (Number(b.usedEndPage) || startP) : startP;
+            return {
+                ...b,
+                collectedAmount: colAmt,
+                usedStartPage: startP,
+                usedEndPage: endP,
+                isEntered: colAmt > 0
+            };
+        });
         team.cashAmount = Number(cashAmount) || 0;
         team.cashRef = cashRef || '';
         team.bankAmount = Number(bankAmount) || 0;
         team.bankRef = bankRef || '';
+        if (Array.isArray(bankAccounts)) {
+            team.bankAccounts = bankAccounts.map(b => ({
+                bankName: b.bankName || '',
+                amount: Number(b.amount) || 0,
+                refNo: b.refNo || ''
+            }));
+        }
         team.totalCollection = receiptBooks.reduce((acc, book) => acc + (Number(book.collectedAmount) || 0), 0);
 
         team.expense = Number(expense) || 0;

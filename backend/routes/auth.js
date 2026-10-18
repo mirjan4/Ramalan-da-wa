@@ -15,16 +15,18 @@ router.post('/login', async (req, res) => {
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
         const token = jwt.sign(
-            { id: admin._id, role: admin.role || 'admin' },
+            { id: admin._id, role: admin.role || 'admin', team: admin.team },
             process.env.JWT_SECRET || 'fallback_secret',
-            { expiresIn: '1d' }
+            { expiresIn: '30d' }
         );
         res.json({
             token,
             admin: {
+                _id: admin._id,
                 username: admin.username,
                 displayName: admin.displayName,
                 role: admin.role,
+                team: admin.team,
                 forcePasswordChange: admin.forcePasswordChange
             }
         });
@@ -112,7 +114,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 
 router.get('/users', authenticateToken, async (req, res) => {
     try {
-        const users = await Admin.find({}, '-password').sort({ createdAt: -1 });
+        const users = await Admin.find({}, '-password').populate('team', 'placeName state').sort({ createdAt: -1 });
         res.json(users);
     } catch (err) {
         console.error('Fetch users error:', err);
@@ -121,7 +123,7 @@ router.get('/users', authenticateToken, async (req, res) => {
 });
 
 router.post('/users', authenticateToken, async (req, res) => {
-    const { username, password, displayName, role } = req.body;
+    const { username, password, displayName, role, team } = req.body;
     try {
         const exists = await Admin.findOne({ username });
         if (exists) return res.status(400).json({ message: 'Username already exists' });
@@ -131,10 +133,11 @@ router.post('/users', authenticateToken, async (req, res) => {
             password,
             displayName: displayName || '',
             role: role || 'data_collector',
+            team: team || undefined,
             forcePasswordChange: true
         });
         await newUser.save();
-        res.status(201).json({ message: 'User created successfully', user: { username: newUser.username, role: newUser.role } });
+        res.status(201).json({ message: 'User created successfully', user: { username: newUser.username, role: newUser.role, team: newUser.team } });
     } catch (err) {
         console.error('Create user error:', err);
         res.status(500).json({ message: err.message || 'Server error' });
@@ -153,7 +156,7 @@ router.delete('/users/:id', authenticateToken, async (req, res) => {
 });
 
 router.put('/users/:id', authenticateToken, async (req, res) => {
-    const { username, displayName, password } = req.body;
+    const { username, displayName, password, team, role } = req.body;
     try {
         const user = await Admin.findById(req.params.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
@@ -163,7 +166,9 @@ router.put('/users/:id', authenticateToken, async (req, res) => {
             if (exists) return res.status(400).json({ message: 'Username taken' });
             user.username = username;
         }
-        if (displayName) user.displayName = displayName;
+        if (displayName !== undefined) user.displayName = displayName;
+        if (role !== undefined) user.role = role;
+        if (team !== undefined) user.team = team || null;
         if (password && password.trim() !== '') user.password = password;
 
         await user.save();

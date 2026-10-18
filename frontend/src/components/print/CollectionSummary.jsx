@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CollectionSummary = ({ total, expense, advance, netBalance, cash, bank, totalReceived, cashRef, bankRef, status, children }) => {
+const CollectionSummary = ({ total, expense, advance, netBalance, cash, bank, totalReceived, cashRef, bankRef, status, children, bankAccounts = [] }) => {
     return (
         <div className="avoid-break mt-6">
             <div className="border-2 border-black mb-6 font-mono text-[10pt] shadow-sm">
@@ -35,9 +35,19 @@ const CollectionSummary = ({ total, expense, advance, netBalance, cash, bank, to
                         <span className="font-medium">: ₹ {Number(cash).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className="text-slate-600">Actual Bank {bankRef && <span className="text-[9pt] font-normal text-slate-500">({bankRef})</span>}</span>
+                        <span className="text-slate-600">Actual Bank {bankRef && (!bankAccounts || bankAccounts.filter(b => b.bankName || Number(b.amount) > 0).length <= 1) && <span className="text-[9pt] font-normal text-slate-500">({bankRef})</span>}</span>
                         <span className="font-medium">: ₹ {Number(bank).toLocaleString()}</span>
                     </div>
+                    {bankAccounts && bankAccounts.filter(b => b.bankName || Number(b.amount) > 0).length > 1 && (
+                        <div className="pl-4 space-y-0.5 text-[8.5pt] text-slate-600 border-l border-slate-300 my-1">
+                            {bankAccounts.filter(b => b.bankName || Number(b.amount) > 0).map((acc, i) => (
+                                <div key={i} className="flex justify-between items-center">
+                                    <span>• {acc.bankName || 'Bank'}{acc.refNo ? ` (${acc.refNo})` : ''}</span>
+                                    <span>₹ {Number(acc.amount || 0).toLocaleString()}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="border-t-2 border-black my-2"></div>
 

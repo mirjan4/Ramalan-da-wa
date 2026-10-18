@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { seasonService } from '../services/api';
 import {
     Plus,
@@ -54,7 +54,7 @@ export default function Season() {
         if (!name.trim()) return;
         setLoading(true);
         try {
-            await seasonService.create({ name: name.trim(), isLocked: isLockedNew });
+            const res = await seasonService.create({ name: name.trim(), isLocked: isLockedNew });
             setName('');
             setIsLockedNew(false);
             MySwal.fire({
@@ -67,6 +67,19 @@ export default function Season() {
             fetchSeasons();
         } catch (err) {
             console.error(err);
+            if (err.response?.status === 401 || err.response?.data?.message?.toLowerCase().includes('token')) {
+                MySwal.fire({
+                    title: 'Session Expired',
+                    text: 'Your login session has expired. Please log in again to continue.',
+                    icon: 'warning',
+                    confirmButtonText: 'Go to Login'
+                }).then(() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                });
+                return;
+            }
             MySwal.fire('Error', err.response?.data?.message || 'Failed to create season', 'error');
         } finally {
             setLoading(false);
@@ -129,6 +142,19 @@ export default function Season() {
             fetchSeasons();
         } catch (err) {
             console.error('Failed to update season:', err);
+            if (err.response?.status === 401 || err.response?.data?.message?.toLowerCase().includes('token')) {
+                MySwal.fire({
+                    title: 'Session Expired',
+                    text: 'Your login session has expired. Please log in again to continue.',
+                    icon: 'warning',
+                    confirmButtonText: 'Go to Login'
+                }).then(() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                });
+                return;
+            }
             MySwal.fire('Update Failed', err.response?.data?.message || 'Could not update season rules', 'error');
         } finally {
             setSavingEdit(false);
@@ -191,33 +217,36 @@ export default function Season() {
 
     const activeSeason = seasons.find(s => s.isActive);
     const lockedCount = seasons.filter(s => s.isLocked).length;
+    const totalAllSeasonsBank = useMemo(() => {
+        return seasons.reduce((sum, s) => sum + (Number(s.totalBankAmount) || 0), 0);
+    }, [seasons]);
 
     return (
-        <div className="p-8 max-w-5xl mx-auto print:p-0">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-5xl mx-auto print:p-0">
             {/* Header Area */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="p-3.5 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shadow-[#1E5FA8]/20">
-                        <Calendar size={28} />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
+                <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="p-2.5 sm:p-3.5 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shadow-[#1E5FA8]/20 shrink-0">
+                        <Calendar size={24} className="sm:w-7 sm:h-7" />
                     </div>
                     <div>
-                        <div className="flex items-center gap-2.5">
-                            <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Season Management</h1>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                            <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">Season Management</h1>
                             {activeSeason && (
-                                <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                     {activeSeason.name} Active
                                 </span>
                             )}
                         </div>
-                        <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+                        <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">
                             Configure operational collection years, active states, and field data lock rules
                         </p>
                     </div>
                 </div>
 
                 {/* Summary Badges */}
-                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-slate-100 shadow-sm text-xs">
+                <div className="flex items-center justify-around md:justify-start gap-2 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-100 shadow-sm text-xs w-full md:w-auto">
                     <div className="text-center px-2">
                         <span className="block font-black text-sm text-[#0F3B66]">{seasons.length}</span>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
@@ -232,12 +261,17 @@ export default function Season() {
                         <span className="block font-black text-sm text-amber-600">{lockedCount}</span>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Locked</span>
                     </div>
+                    <div className="h-6 w-[1px] bg-slate-100"></div>
+                    <div className="text-center px-2">
+                        <span className="block font-black text-sm text-[#1E5FA8]">₹{totalAllSeasonsBank.toLocaleString('en-IN')}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bank Total</span>
+                    </div>
                 </div>
             </div>
 
             {/* Register New Season Form */}
             {isAdmin && (
-                <div className="glass-card p-6 mb-8 border-none bg-white shadow-sm rounded-3xl">
+                <div className="glass-card p-4 sm:p-6 mb-6 sm:mb-8 border-none bg-white shadow-sm rounded-2xl sm:rounded-3xl">
                     <div className="flex items-center gap-2 mb-4">
                         <Sparkles size={18} className="text-[#1E5FA8]" />
                         <h2 className="text-base font-bold text-[#0F3B66]">Register New Operational Season</h2>
@@ -277,6 +311,7 @@ export default function Season() {
                 </div>
             )}
 
+
             {/* Seasons List with Rule Badges & Edit Options */}
             <div className="space-y-4">
                 <div className="flex justify-between items-center px-1">
@@ -300,7 +335,7 @@ export default function Season() {
                     seasons.map((season) => (
                         <div
                             key={season._id}
-                            className={`glass-card p-6 border transition-all duration-300 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-5 ${
+                            className={`glass-card p-4 sm:p-6 border transition-all duration-300 rounded-2xl sm:rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-5 ${
                                 season.isActive
                                     ? 'bg-[#E6F0FA]/40 border-[#1E5FA8]/40 shadow-md ring-1 ring-[#1E5FA8]/20'
                                     : 'bg-white border-slate-100 hover:border-slate-200 shadow-sm'
@@ -358,12 +393,12 @@ export default function Season() {
                             </div>
 
                             {/* Right: Actions (Edit option, Lock toggle, Activate, Delete) */}
-                            <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto justify-start sm:justify-end pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
                                 {/* Edit Button */}
                                 {isAdmin && (
                                     <button
                                         onClick={() => openEditModal(season)}
-                                        className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-[#E6F0FA] text-[#1E5FA8] border border-slate-200 hover:border-[#A3C4E8] rounded-xl text-xs font-bold transition-all shadow-sm"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-slate-50 hover:bg-[#E6F0FA] text-[#1E5FA8] border border-slate-200 hover:border-[#A3C4E8] rounded-xl text-xs font-bold transition-all shadow-sm"
                                         title="Edit Season Name & Rules"
                                     >
                                         <Edit3 size={15} />
@@ -376,7 +411,7 @@ export default function Season() {
                                     <button
                                         onClick={() => handleToggleLock(season)}
                                         disabled={togglingLockId === season._id}
-                                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
                                             season.isLocked
                                                 ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
                                                 : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -403,14 +438,14 @@ export default function Season() {
                                 {!season.isActive ? (
                                     <button
                                         onClick={() => handleActivate(season._id, season.name)}
-                                        className="btn-secondary flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#1E5FA8] hover:bg-[#E6F0FA] rounded-xl"
+                                        className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold text-[#1E5FA8] hover:bg-[#E6F0FA] rounded-xl"
                                         title="Make this the active season"
                                     >
                                         <Circle size={15} />
                                         <span>Activate</span>
                                     </button>
                                 ) : (
-                                    <span className="flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-3.5 py-2 rounded-xl text-xs border border-emerald-200">
+                                    <span className="flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs border border-emerald-200">
                                         <CheckCircle size={15} />
                                         <span>Active</span>
                                     </span>
@@ -438,17 +473,17 @@ export default function Season() {
 
             {/* Edit Season & Operational Rules Modal */}
             {editingSeason && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-[#1E5FA8] text-white rounded-xl shadow-md">
-                                    <Settings2 size={20} />
+                        <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div className="flex items-center gap-2.5 sm:gap-3">
+                                <div className="p-2 sm:p-2.5 bg-[#1E5FA8] text-white rounded-xl shadow-md shrink-0">
+                                    <Settings2 size={18} className="sm:w-5 sm:h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-bold text-[#0F3B66]">Edit Season & Operating Rules</h2>
-                                    <p className="text-xs text-slate-500 font-medium">
+                                    <h2 className="text-base sm:text-lg font-bold text-[#0F3B66]">Edit Season & Operating Rules</h2>
+                                    <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
                                         Modify name, operational state, and access permissions
                                     </p>
                                 </div>
@@ -462,7 +497,7 @@ export default function Season() {
                         </div>
 
                         {/* Modal Body / Form */}
-                        <form onSubmit={handleSaveEdit} className="p-6 space-y-6">
+                        <form onSubmit={handleSaveEdit} className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto custom-scrollbar">
                             {/* Season Name */}
                             <div>
                                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">

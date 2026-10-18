@@ -27,6 +27,9 @@ import Admin from './models/Admin.js';
 import Season from './models/Season.js';
 import Team from './models/Team.js';
 import FieldData from './models/FieldData.js';
+import TeamCollection from './models/TeamCollection.js';
+import BankAccount from './models/BankAccount.js';
+import SeasonBankAmount from './models/SeasonBankAmount.js';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -36,6 +39,8 @@ import settlementRoutes from './routes/settlement.js';
 import dashboardRoutes from './routes/dashboard.js';
 import fieldDataRoutes from './routes/fieldData.js';
 import depositRoutes from './routes/deposit.js';
+import teamCollectionRoutes from './routes/teamCollection.js';
+import bankAccountRoutes from './routes/bankAccount.js';
 
 app.get('/', (req, res) => {
     res.json({ message: "Ramalan Da'wa API is running" });
@@ -62,6 +67,8 @@ app.use('/api/settlements', settlementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/field-data', fieldDataRoutes);
 app.use('/api/deposits', depositRoutes);
+app.use('/api/team-collections', teamCollectionRoutes);
+app.use('/api/bank-accounts', bankAccountRoutes);
 
 // MongoDB Connection
 // MongoDB Connection via Global Cache (Vercel/Serverless Safe)
@@ -82,6 +89,22 @@ dbConnect()
             });
             await admin.save();
             console.log('Default admin seeded.');
+        }
+
+        // Seed default bank accounts if empty
+        const bankCount = await BankAccount.countDocuments();
+        if (bankCount === 0) {
+            const defaultBanks = [
+                'State Bank of India (SBI)',
+                'Federal Bank',
+                'HDFC Bank',
+                'Canara Bank',
+                'Kerala Bank'
+            ];
+            for (const bName of defaultBanks) {
+                await BankAccount.create({ bankName: bName });
+            }
+            console.log('Initial default bank accounts seeded.');
         }
 
         app.listen(PORT, '0.0.0.0', () => {

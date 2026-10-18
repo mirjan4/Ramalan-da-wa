@@ -136,16 +136,16 @@ export default function AddTeam() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-10">
-        <div className={`p-3 ${id ? 'bg-[#F59E0B]' : 'bg-[#1E5FA8]'} text-white rounded-2xl shadow-lg`}>
+    <div className="p-3 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-10">
+        <div className={`p-2.5 sm:p-3 ${id ? 'bg-[#F59E0B]' : 'bg-[#1E5FA8]'} text-white rounded-2xl shadow-lg shrink-0`}>
           {id ? <Edit3 size={24} /> : <Plus size={24} />}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">
             {id ? 'Modify Team Profile' : 'Register New Team'}
           </h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">Configure field operational areas and personnel</p>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">Configure field operational areas and personnel</p>
         </div>
       </div>
 
@@ -157,7 +157,7 @@ export default function AddTeam() {
         <>
           {/* Quick Activate from Previous Season */}
           {!id && seasons.filter(s => s._id !== activeSeason?._id).length > 0 && (
-            <div className="bg-gradient-to-r from-[#F0F7FF] to-white p-6 rounded-2xl border border-[#1E5FA8]/20 shadow-sm mb-8 animate-in fade-in duration-300">
+            <div className="bg-gradient-to-r from-[#F0F7FF] to-white p-4 sm:p-6 rounded-2xl border border-[#1E5FA8]/20 shadow-sm mb-6 sm:mb-8 animate-in fade-in duration-300">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-[#1E5FA8] text-white rounded-xl shadow-md">
                   <History size={18} />
@@ -217,11 +217,11 @@ export default function AddTeam() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="glass-card p-8 border-none bg-white">
-            <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-[#0F3B66]">
+          <div className="glass-card p-4 sm:p-6 lg:p-8 border-none bg-white">
+            <h2 className="text-base sm:text-lg font-bold mb-4 sm:mb-6 flex items-center gap-2 text-[#0F3B66]">
               <MapPin className="text-[#1E5FA8]" size={20} /> Operational Area Details
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
                 <label className="label">Place Name</label>
                 <input
@@ -255,52 +255,52 @@ export default function AddTeam() {
             </div>
           </div>
 
-          <div className="glass-card p-8 border-none bg-white">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-[#0F3B66]">
+          <div className="glass-card p-4 sm:p-6 lg:p-8 border-none bg-white">
+            <div className="flex flex-wrap justify-between items-center gap-2 mb-4 sm:mb-6">
+              <h2 className="text-base sm:text-lg font-bold flex items-center gap-2 text-[#0F3B66]">
                 <UserPlus className="text-[#1E5FA8]" size={20} /> Designated Field Officers
               </h2>
-              <button type="button" onClick={addMember} className="btn-secondary flex items-center gap-2 text-sm px-4">
+              <button type="button" onClick={addMember} className="btn-secondary flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
                 <Plus size={16} /> Add Officer
               </button>
             </div>
 
             <div className="space-y-4">
               {formData.members.map((member, idx) => (
-                <div key={idx} className="p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-4 relative">
+                <div key={idx} className="p-4 sm:p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-3 sm:gap-4 relative">
                   <div className="flex-[2]">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Full Name</label>
+                    <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Full Name</label>
                     <input
                       required
-                      className="input-field"
+                      className="input-field text-sm"
                       placeholder="Name"
                       value={member.name}
                       onChange={e => updateMember(idx, 'name', e.target.value)}
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Class</label>
+                    <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Class</label>
                     <input
                       required
-                      className="input-field"
+                      className="input-field text-sm"
                       placeholder="Class"
                       value={member.class}
                       onChange={e => updateMember(idx, 'class', e.target.value)}
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Phone Number</label>
+                    <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Phone Number</label>
                     <input
                       required
-                      className="input-field"
+                      className="input-field text-sm"
                       placeholder="Phone"
                       value={member.phone}
                       onChange={e => updateMember(idx, 'phone', e.target.value)}
                     />
                   </div>
                   {formData.members.length > 1 && (
-                    <button type="button" onClick={() => removeMember(idx)} className="mt-6 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors self-end md:self-center">
-                      <Trash2 size={20} />
+                    <button type="button" onClick={() => removeMember(idx)} className="mt-2 md:mt-6 p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors self-end md:self-center">
+                      <Trash2 size={18} />
                     </button>
                   )}
                 </div>
@@ -308,9 +308,9 @@ export default function AddTeam() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 mt-6">
-            <button type="button" onClick={() => navigate('/teams')} className="btn-secondary px-8">Return</button>
-            <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2 px-10 shadow-sm">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-6">
+            <button type="button" onClick={() => navigate('/teams')} className="w-full sm:w-auto btn-secondary px-6 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm">Return</button>
+            <button type="submit" disabled={loading} className="w-full sm:w-auto btn-primary flex items-center justify-center gap-2 px-8 sm:px-10 py-2.5 sm:py-3 shadow-sm text-xs sm:text-sm">
               <Save size={18} /> {loading ? 'Processing...' : (id ? 'Update Record' : 'Register Team')}
             </button>
           </div>

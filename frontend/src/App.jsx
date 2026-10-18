@@ -17,8 +17,11 @@ import FieldDataList from './pages/FieldDataList';
 import FieldDataForm from './pages/FieldDataForm';
 import BookReport from './pages/BookReport';
 import DenominationReport from './pages/DenominationReport';
+import TeamCollection from './pages/TeamCollection';
+import CollectionApprovals from './pages/CollectionApprovals';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollFeatures from './components/ScrollFeatures';
+import MobileBottomNav from './components/MobileBottomNav';
 
 function App() {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
@@ -52,12 +55,12 @@ function App() {
                             <Navbar user={user} onMenuClick={toggleSidebar} />
                         </div>
                     )}
-                    <main className="flex-1 overflow-y-auto w-full print:overflow-visible">
+                    <main className="flex-1 overflow-y-auto w-full pb-16 lg:pb-0 print:overflow-visible print:pb-0">
                         <Routes>
                             <Route path="/login" element={user ? <Navigate to="/" /> : <Login setUser={setUser} />} />
 
                             <Route element={<ProtectedRoute user={user} />}>
-                                <Route path="/" element={user?.role === 'data_collector' ? <Navigate to="/field-data" /> : <Dashboard />} />
+                                <Route path="/" element={user?.role === 'data_collector' ? <Navigate to="/team-collection" /> : <Dashboard />} />
                                 <Route path="/season" element={<Season />} />
                                 <Route path="/teams" element={<TeamsList />} />
                                 <Route path="/team-tools" element={<TeamTools />} />
@@ -65,6 +68,8 @@ function App() {
                                 <Route path="/edit-team/:id" element={<AddTeam />} />
                                 <Route path="/assign-book" element={<AssignReceiptBook />} />
                                 <Route path="/collection" element={<CollectionEntry />} />
+                                <Route path="/team-collection" element={<TeamCollection />} />
+                                <Route path="/collection-approvals" element={<CollectionApprovals />} />
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/book-report" element={<BookReport />} />
                                 <Route path="/denomination-report" element={<DenominationReport />} />
@@ -76,6 +81,12 @@ function App() {
                         </Routes>
                     </main>
                 </div>
+                {user && (
+                    <MobileBottomNav 
+                        user={user} 
+                        onOpenSidebar={() => setSidebarOpen(true)} 
+                    />
+                )}
                 <ScrollFeatures />
             </div>
         </Router>

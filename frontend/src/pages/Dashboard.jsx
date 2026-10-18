@@ -112,10 +112,10 @@ export default function Dashboard() {
     : 0;
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="p-3 sm:p-6 lg:p-8 max-w-[1600px] mx-auto min-h-screen">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-10">
         <div>
-          <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Overview</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">Overview</h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="px-2 py-0.5 bg-[#E6F0FA] text-[#1E5FA8] rounded text-[10px] font-bold uppercase tracking-wider">
               {activeSeason.name}
@@ -123,12 +123,12 @@ export default function Dashboard() {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">• Operational Overview</span>
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <Link to="/add-team" className="btn-primary text-sm flex items-center gap-2 px-5 py-2.5">
-            <Plus size={18} /> New Team
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <Link to="/add-team" className="btn-primary flex-1 sm:flex-none text-xs sm:text-sm flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5">
+            <Plus size={16} /> New Team
           </Link>
-          <Link to="/reports" className="btn-secondary text-sm flex items-center gap-2 px-5 py-2.5">
-            <BookOpen size={18} /> Reports
+          <Link to="/reports" className="btn-secondary flex-1 sm:flex-none text-xs sm:text-sm flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5">
+            <BookOpen size={16} /> Reports
           </Link>
         </div>
       </div>
@@ -294,7 +294,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-2xl border border-slate-100 shadow-sm">
               <h2 className="text-base font-bold text-[#0F3B66] mb-6 border-b border-slate-50 pb-4">Expenses vs Collections</h2>
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -314,15 +314,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-4">
             {[
               { icon: <Plus size={20} />, label: "Add New Team", path: "/add-team", bg: "bg-[#E6F0FA]", text: "text-[#1E5FA8]" },
               { icon: <Users size={20} />, label: "Manage Teams", path: "/teams", bg: "bg-slate-50", text: "text-slate-600" },
               { icon: <BookOpen size={20} />, label: "Book Audit", path: "/book-report", bg: "bg-slate-50", text: "text-slate-600" },
               { icon: <Scale size={20} />, label: "Settlements", path: "/collection", bg: "bg-slate-50", text: "text-slate-600" },
             ].map((action, idx) => (
-              <Link key={idx} to={action.path} className="bg-white border border-slate-100 hover:border-[#1E5FA8]/30 hover:shadow-md p-6 rounded-2xl flex flex-col items-center gap-4 transition-all duration-300">
-                <div className={`p-4 rounded-xl ${action.bg} ${action.text}`}>
+              <Link key={idx} to={action.path} className="bg-white border border-slate-100 hover:border-[#1E5FA8]/30 hover:shadow-md p-5 sm:p-6 rounded-2xl flex flex-col items-center gap-3 sm:gap-4 transition-all duration-300">
+                <div className={`p-3.5 sm:p-4 rounded-xl ${action.bg} ${action.text}`}>
                   {action.icon}
                 </div>
                 <span className="font-bold text-slate-700 text-sm">{action.label}</span>
@@ -334,15 +334,15 @@ export default function Dashboard() {
 
       {/* Umrah Rewards Detail Modal */}
       {showUmrahModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
                   <Award size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-[#0F3B66]">Umrah Reward Qualifiers</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#0F3B66]">Umrah Reward Qualifiers</h2>
                   <p className="text-xs text-slate-500 font-medium">Institutional targets: <span className="font-bold text-amber-600">🕋 {totalUmrahSlots} Slots Archived</span></p>
                 </div>
               </div>
@@ -351,9 +351,9 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div className="p-4 sm:p-6 max-h-[60vh] overflow-y-auto overflow-x-auto custom-scrollbar">
               {umrahQualifiers.length > 0 ? (
-                <table className="w-full text-left">
+                <table className="w-full text-left min-w-[360px]">
                   <thead>
                     <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                       <th className="pb-3 px-2">Team Unit</th>

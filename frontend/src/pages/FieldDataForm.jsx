@@ -120,26 +120,26 @@ export default function FieldDataForm() {
     if (!activeSeason && !loading && !error) return <div className="p-8 text-center">Loading context...</div>;
 
     return (
-        <div className="p-4 md:p-8 max-w-3xl mx-auto">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-3xl mx-auto">
             <button
                 onClick={() => navigate('/field-data')}
-                className="flex items-center gap-2 text-slate-500 hover:text-[#1E5FA8] font-bold text-sm mb-6 transition-colors"
+                className="flex items-center gap-2 text-slate-500 hover:text-[#1E5FA8] font-bold text-sm mb-4 sm:mb-6 transition-colors"
             >
                 <ArrowLeft size={16} /> Back
             </button>
 
-            <div className="glass-card bg-white p-6 md:p-8 border-none shadow-xl">
-                <div className="flex justify-between items-start mb-8">
+            <div className="glass-card bg-white p-4 sm:p-6 md:p-8 border-none shadow-xl rounded-2xl sm:rounded-3xl">
+                <div className="flex justify-between items-start mb-6 sm:mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">
+                        <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">
                             {isEditMode ? 'Modify Registry' : 'New Field Registry'}
                         </h1>
-                        <p className="text-slate-500 text-sm mt-1 font-medium">
+                        <p className="text-slate-500 text-xs sm:text-sm mt-0.5 sm:mt-1 font-medium">
                             Season {activeSeason?.name} • Accurate institutional record keeping
                         </p>
                     </div>
-                    <div className="p-3 bg-[#E6F0FA] text-[#1E5FA8] rounded-2xl shadow-sm">
-                        <MapPin size={24} />
+                    <div className="p-2.5 sm:p-3 bg-[#E6F0FA] text-[#1E5FA8] rounded-2xl shadow-sm shrink-0">
+                        <MapPin size={22} className="sm:w-6 sm:h-6" />
                     </div>
                 </div>
 
@@ -282,18 +282,18 @@ export default function FieldDataForm() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-4 pt-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 pt-4">
                         <button
                             type="button"
                             onClick={() => navigate('/field-data')}
-                            className="flex-1 btn-secondary text-slate-500"
+                            className="w-full sm:flex-1 btn-secondary text-slate-500 py-3 sm:py-3.5"
                         >
                             Discard
                         </button>
                         <button
                             type="submit"
                             disabled={loading || (isEditMode && formData.isLocked)}
-                            className="flex-[2] btn-primary flex items-center justify-center gap-2"
+                            className="w-full sm:flex-[2] btn-primary flex items-center justify-center gap-2 py-3 sm:py-3.5"
                         >
                             {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                             {isEditMode ? 'Update' : 'Submit'}

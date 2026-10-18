@@ -198,19 +198,19 @@ export default function TeamsList() {
     }, [sourceTeams, modalSearchQuery]);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto print:p-0 print:max-w-none print:m-0">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto print:p-0 print:max-w-none print:m-0">
             <div className="print:hidden">
                 {/* Header Area */}
-                <div id="report-summary" className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 print:hidden">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shadow-[#1E5FA8]/20">
-                            <Users size={26} />
+                <div id="report-summary" className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sm:gap-6 mb-6 sm:mb-8 print:hidden">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="p-2.5 sm:p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shadow-[#1E5FA8]/20 shrink-0">
+                            <Users size={24} className="sm:w-[26px] sm:h-[26px]" />
                         </div>
                         <div>
-                            <div className="flex flex-wrap items-center gap-2.5">
-                                <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Teams Management</h1>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                                <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">Teams Management</h1>
                                 {currentSeasonObj && (
-                                    <span className={`text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
+                                    <span className={`text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
                                         currentSeasonObj.isActive 
                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                                             : 'bg-slate-100 text-slate-500 border-slate-200'
@@ -222,14 +222,14 @@ export default function TeamsList() {
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+                            <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">
                                 Organize field officers and assign collection books
                             </p>
                         </div>
                     </div>
 
                     {/* Primary Action Buttons */}
-                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                         {isAdmin && seasons.length > 1 && (
                             <button
                                 onClick={openActivateModal}
@@ -377,7 +377,7 @@ export default function TeamsList() {
                             )}
                         </div>
                     ) : filteredTeams.map((team) => (
-                        <div key={team._id} className="glass-card p-6 border-none bg-white hover:shadow-xl transition-all duration-300 group flex flex-col h-fit">
+                        <div key={team._id} className="glass-card p-4 sm:p-6 border-none bg-white hover:shadow-xl transition-all duration-300 group flex flex-col h-fit">
                             {/* Header with Icon Buttons */}
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex-1 min-w-0 pr-4">
@@ -388,7 +388,14 @@ export default function TeamsList() {
                                     <h3 className="text-lg font-bold text-[#0F3B66] leading-tight truncate">{team.placeName}</h3>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex gap-1.5">
+                                    <button
+                                        onClick={() => navigate(`/team-collection?teamId=${team._id}`)}
+                                        className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-[#0F3B66] hover:text-white hover:border-[#0F3B66] transition-all shadow-sm"
+                                        title="Team Collection Register"
+                                    >
+                                        <BookOpen size={18} />
+                                    </button>
                                     <button
                                         onClick={() => navigate(`/edit-team/${team._id}`)}
                                         className="p-2 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 hover:bg-[#1E5FA8] hover:text-white hover:border-[#1E5FA8] transition-all shadow-sm"

@@ -17,7 +17,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
+        const isAuthError = error.response && (
+            error.response.status === 401 ||
+            (error.response.status === 403 && (
+                error.response.data?.message?.toLowerCase().includes('token') ||
+                error.response.data?.message?.toLowerCase().includes('jwt') ||
+                error.response.data?.message?.toLowerCase().includes('expired')
+            ))
+        );
+        if (isAuthError) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
@@ -79,6 +87,31 @@ export const depositService = {
     getAll: (seasonId) => api.get('/deposits', { params: { seasonId } }),
     create: (data) => api.post('/deposits', data),
     delete: (id) => api.delete(`/deposits/${id}`),
+};
+
+export const teamCollectionService = {
+    getMyTeam: (teamId) => api.get('/team-collections/my-team', { params: { teamId } }),
+    getTeamBooks: (teamId) => api.get(`/team-collections/team/${teamId}/books`),
+    getBookReceipts: (teamId, bookNumber) => api.get(`/team-collections/team/${teamId}/book/${bookNumber}`),
+    saveBookReceipts: (teamId, bookNumber, data) => api.put(`/team-collections/team/${teamId}/book/${bookNumber}`, data),
+    submitBookCollection: (teamId, bookNumber) => api.post(`/team-collections/team/${teamId}/book/${bookNumber}/submit`),
+    getAdminSubmissions: (params) => api.get('/team-collections/admin/submissions', { params }),
+    approveSubmission: (id, data) => api.post(`/team-collections/admin/submissions/${id}/approve`, data),
+    reopenSubmission: (id, data) => api.post(`/team-collections/admin/submissions/${id}/reopen`, data),
+};
+
+export const bankAccountService = {
+    getAll: () => api.get('/bank-accounts'),
+    create: (data) => api.post('/bank-accounts', data),
+    update: (id, data) => api.put(`/bank-accounts/${id}`, data),
+    delete: (id) => api.delete(`/bank-accounts/${id}`),
+};
+
+export const seasonBankService = {
+    getBySeason: (seasonId) => api.get(`/seasons/${seasonId}/bank-amounts`),
+    add: (seasonId, data) => api.post(`/seasons/${seasonId}/bank-amounts`, data),
+    update: (seasonId, id, data) => api.put(`/seasons/${seasonId}/bank-amounts/${id}`, data),
+    delete: (seasonId, id) => api.delete(`/seasons/${seasonId}/bank-amounts/${id}`),
 };
 
 export default api;

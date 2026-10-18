@@ -74,12 +74,13 @@ export default function Settings() {
 
             setNewUser(prev => ({
                 ...prev,
+                team: team._id,
                 displayName: team.placeName,
                 username: autoUsername,
                 password: autoPassword
             }));
         } else {
-            setNewUser(prev => ({ ...prev, displayName: '', username: '' }));
+            setNewUser(prev => ({ ...prev, team: '', displayName: '', username: '' }));
         }
     };
 
@@ -131,13 +132,13 @@ export default function Settings() {
 
     const handleEditUser = (user) => {
         setEditingUserId(user._id);
-        // Try to match team based on display name
-        const team = teams.find(t => t.placeName === user.displayName);
-        if (team) setSelectedTeam(team._id);
+        const team = user.team?._id ? user.team : teams.find(t => t.placeName === user.displayName);
+        if (team) setSelectedTeam(team._id || team);
 
         setNewUser({
             username: user.username,
             displayName: user.displayName,
+            team: team?._id || team || '',
             password: '' // Don't show existing password
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -229,50 +230,50 @@ export default function Settings() {
     };
 
     return (
-        <div className="p-4 md:p-8 max-w-5xl mx-auto">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-10">
-                <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-10">
+                <div className="p-2.5 sm:p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shrink-0">
                     <SettingsIcon size={24} />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">System Settings</h1>
-                    <p className="text-sm font-medium text-slate-500 mt-1">Manage account security, team profiles and administrative preferences.</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">System Settings</h1>
+                    <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">Manage account security, team profiles and administrative preferences.</p>
                 </div>
             </div>
 
             {/* Tab Navigation */}
-            <div id="report-summary" className="flex flex-wrap gap-2 mb-8 border-b border-slate-200">
+            <div id="report-summary" className="flex flex-wrap gap-1 sm:gap-2 mb-6 sm:mb-8 border-b border-slate-200">
                 {!currentUser.forcePasswordChange && (
                     <button
                         onClick={() => setActiveTab('profile')}
-                        className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'profile'
+                        className={`px-4 sm:px-6 py-2.5 sm:py-3 font-bold text-xs sm:text-sm uppercase tracking-widest transition-all ${activeTab === 'profile'
                             ? 'text-[#1E5FA8] border-b-2 border-[#1E5FA8]'
                             : 'text-slate-400 hover:text-slate-600'
                             }`}
                     >
-                        <User size={16} className="inline mr-2" />
+                        <User size={16} className="inline mr-1.5 sm:mr-2" />
                         Identity
                     </button>
                 )}
                 <button
                     onClick={() => setActiveTab('security')}
-                    className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'security'
+                    className={`px-4 sm:px-6 py-2.5 sm:py-3 font-bold text-xs sm:text-sm uppercase tracking-widest transition-all ${activeTab === 'security'
                         ? 'text-[#1E5FA8] border-b-2 border-[#1E5FA8]'
                         : 'text-slate-400 hover:text-slate-600'
                         }`}
                 >
-                    <Lock size={16} className="inline mr-2" />
+                    <Lock size={16} className="inline mr-1.5 sm:mr-2" />
                     Security
                 </button>
                 {!currentUser.forcePasswordChange && isAdmin && (
                     <button
                         onClick={() => setActiveTab('users')}
-                        className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'users'
+                        className={`px-4 sm:px-6 py-2.5 sm:py-3 font-bold text-xs sm:text-sm uppercase tracking-widest transition-all ${activeTab === 'users'
                             ? 'text-[#1E5FA8] border-b-2 border-[#1E5FA8]'
                             : 'text-slate-400 hover:text-slate-600'
                             }`}
                     >
-                        <Users size={16} className="inline mr-2" />
+                        <Users size={16} className="inline mr-1.5 sm:mr-2" />
                         Team Accounts
                     </button>
                 )}
@@ -288,15 +289,15 @@ export default function Settings() {
 
             {/* Profile Settings Tab */}
             {activeTab === 'profile' && (
-                <div id="report-table" className="glass-card p-8 border-none bg-white max-w-2xl">
-                    <h2 className="text-xl font-bold mb-6 text-slate-800">Profile Settings</h2>
-                    <form onSubmit={handleProfileUpdate} className="space-y-6">
+                <div id="report-table" className="glass-card p-4 sm:p-6 md:p-8 border-none bg-white max-w-2xl rounded-2xl sm:rounded-3xl shadow-sm">
+                    <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 text-slate-800">Profile Settings</h2>
+                    <form onSubmit={handleProfileUpdate} className="space-y-4 sm:space-y-6">
                         <div>
                             <label className="label">Username</label>
                             <input
                                 type="text"
                                 required
-                                className="input-field text-lg font-bold"
+                                className="input-field text-base sm:text-lg font-bold"
                                 value={profileData.username}
                                 onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
                             />
@@ -318,7 +319,7 @@ export default function Settings() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="btn-primary flex items-center gap-2 px-8"
+                            className="w-full sm:w-auto btn-primary flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-bold"
                         >
                             <Save size={18} />
                             {loading ? 'Saving...' : 'Update Details'}
@@ -329,8 +330,8 @@ export default function Settings() {
 
             {/* Security Settings Tab */}
             {activeTab === 'security' && (
-                <div id="report-table" className="glass-card p-8 border-none bg-white max-w-2xl">
-                    <h2 className="text-xl font-bold mb-6 text-slate-800">Change Password</h2>
+                <div id="report-table" className="glass-card p-4 sm:p-6 md:p-8 border-none bg-white max-w-2xl rounded-2xl sm:rounded-3xl shadow-sm">
+                    <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 text-slate-800">Change Password</h2>
                     <form onSubmit={handlePasswordUpdate} className="space-y-6">
                         <div>
                             <label className="label">Current Password</label>
@@ -370,7 +371,7 @@ export default function Settings() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="btn-primary flex items-center gap-2 px-8"
+                            className="w-full sm:w-auto btn-primary flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-bold"
                         >
                             <Lock size={18} />
                             {loading ? 'Updating...' : 'Set New Password'}
@@ -381,14 +382,14 @@ export default function Settings() {
 
             {/* User Management Tab (Admin Only) */}
             {activeTab === 'users' && isAdmin && (
-                <div id="report-table" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div id="report-table" className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                     {/* Create/Edit User Form */}
-                    <div className="glass-card p-6 border-none bg-white h-fit shadow-sm">
-                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                    <div className="glass-card p-4 sm:p-6 border-none bg-white h-fit shadow-sm rounded-2xl sm:rounded-3xl">
+                        <div className="flex items-center gap-3 mb-4 sm:mb-6 pb-4 border-b border-slate-100">
                             <div className="p-2 bg-[#E6F0FA] text-[#1E5FA8] rounded-lg">
                                 {editingUserId ? <Edit size={20} /> : <Plus size={20} />}
                             </div>
-                            <h2 className="text-lg font-bold text-[#0F3B66]">
+                            <h2 className="text-base sm:text-lg font-bold text-[#0F3B66]">
                                 {editingUserId ? 'Edit Account' : 'Provision New Account'}
                             </h2>
                         </div>
@@ -448,8 +449,8 @@ export default function Settings() {
                     </div>
 
                     {/* Users List */}
-                    <div className="glass-card p-6 border-none bg-white">
-                        <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <div className="glass-card p-4 sm:p-6 border-none bg-white rounded-2xl sm:rounded-3xl shadow-sm">
+                        <h2 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6 flex items-center gap-2">
                             <Users size={20} className="text-slate-400" />
                             Existing Accounts
                         </h2>

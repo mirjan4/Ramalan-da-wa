@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, BookOpen, Banknote, Scale, FileText, LogOut, LayoutDashboard, Calendar, X, Settings, MapPin } from 'lucide-react';
+import { Home, Users, BookOpen, Banknote, Scale, FileText, LogOut, LayoutDashboard, Calendar, X, Settings, MapPin, ShieldCheck, Edit3 } from 'lucide-react';
 import { confirmAction } from '../utils/swal';
 
 export default function Sidebar({ setUser, isOpen, onClose }) {
@@ -29,31 +29,38 @@ export default function Sidebar({ setUser, isOpen, onClose }) {
   const navItems = role === 'admin' ? [
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/' },
     { icon: <Users size={20} />, label: 'Team Management', path: '/teams' },
-    { icon: <BookOpen size={20} />, label: 'Book  Report', path: '/book-report' },
-    { icon: <Scale size={20} />, label: 'Settlement & Collection', path: '/collection' },
+    { icon: <Edit3 size={20} />, label: 'Team Collection Register', path: '/team-collection' },
+    { icon: <ShieldCheck size={20} />, label: 'Collection Approvals', path: '/collection-approvals' },
+    { icon: <BookOpen size={20} />, label: 'Book Report', path: '/book-report' },
+    { icon: <Scale size={20} />, label: 'Settlement & Finalization', path: '/collection' },
     { icon: <FileText size={20} />, label: 'Reports', path: '/reports' },
     { icon: <MapPin size={20} />, label: 'Field Data', path: '/field-data' },
     { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
   ] : [
+    { icon: <Edit3 size={20} />, label: 'My Team Collection', path: '/team-collection' },
     { icon: <MapPin size={20} />, label: 'Field Data Entry', path: '/field-data' },
   ];
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-slate-100 flex flex-col p-6 transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="flex items-center justify-between mb-10 px-2 group cursor-pointer" onClick={() => navigate('/')}>
+      <div className="flex items-center justify-between mb-6 px-2 group cursor-pointer" onClick={() => navigate(role === 'data_collector' ? '/team-collection' : '/')}>
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-[#E6F0FA] rounded-2xl shadow-sm transition-transform group-hover:scale-105">
             <img className='w-10 h-10 object-contain' src="markaz-logo.png" alt="Markaz Logo" />
           </div>
           <div>
             <h2 className="font-bold text-lg tracking-tight text-[#0F3B66]">Ramalan Da'wah</h2>
-            <p className="text-[10px] font-bold tracking-tight text-[#1E5FA8] -mt-1 opacity-80 leading-none">Admin Portal</p>
+            <p className="text-[10px] font-bold tracking-tight text-[#1E5FA8] -mt-1 opacity-80 leading-none">
+              {role === 'data_collector' ? 'Field Envoy Portal' : 'Admin Portal'}
+            </p>
           </div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="lg:hidden p-2 text-slate-300 hover:text-[#EF4444] transition-colors">
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="lg:hidden p-2 text-slate-300 hover:text-[#EF4444] transition-colors" aria-label="Close Sidebar">
           <X size={20} />
         </button>
       </div>
+
+     
 
       <nav className="flex-1 space-y-1.5 overflow-y-auto px-1">
         {navItems.map((item) => {

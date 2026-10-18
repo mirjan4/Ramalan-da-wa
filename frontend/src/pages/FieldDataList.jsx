@@ -9,9 +9,11 @@ import {
     ChevronLeft, ChevronRight, AlertCircle, UserX, X, Calendar
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { confirmDelete, confirmAction } from '../utils/swal';
+import { confirmDelete, confirmAction, MySwal } from '../utils/swal';
+import ExportModal from '../components/ExportModal';
 
 export default function FieldDataList() {
+    const [showExportModal, setShowExportModal] = useState(false);
     const [fieldData, setFieldData] = useState([]);
     const [seasonTeams, setSeasonTeams] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -235,23 +237,41 @@ export default function FieldDataList() {
         }
     };
 
-    const handleExport = async () => {
+    const fieldDataExportFields = [
+        { key: 'masjidName', label: 'Masjid / Shop Name', category: 'Establishment' },
+        { key: 'place', label: 'Place', category: 'Location' },
+        { key: 'landmark', label: 'Land Mark / Address', category: 'Location' },
+        { key: 'contactName', label: 'Contact Name', category: 'Contact' },
+        { key: 'phone', label: 'Phone', category: 'Contact' },
+        { key: 'designation', label: 'Designation', category: 'Contact' },
+        { key: 'collection', label: 'Collection', category: 'Financials' },
+        { key: 'remarks', label: 'Remarks', category: 'Audit' },
+        { key: 'createdBy', label: 'Created By', category: 'Audit' },
+    ];
+
+    const executeExport = async (selectedKeys) => {
+        if (!selectedKeys || selectedKeys.length === 0) return;
+
         const workbook = new ExcelJS.Workbook();
+
+        const allFieldCols = [
+            { header: 'Masjid / Shop Name', key: 'masjidName', width: 30 },
+            { header: 'Place', key: 'place', width: 25 },
+            { header: 'Land Mark', key: 'landmark', width: 25 },
+            { header: 'Contact Name', key: 'contactName', width: 25 },
+            { header: 'Phone', key: 'phone', width: 18 },
+            { header: 'Designation', key: 'designation', width: 15 },
+            { header: 'Collection', key: 'collection', width: 15 },
+            { header: 'Remarks', key: 'remarks', width: 35 },
+            { header: 'Created By', key: 'createdBy', width: 20 },
+        ];
+
+        const activeCols = allFieldCols.filter(c => selectedKeys.includes(c.key));
 
         // Helper to setup standard sheet structure
         const setupSheet = (name) => {
             const sheet = workbook.addWorksheet(name);
-            sheet.columns = [
-                { header: 'Masjid / Shop Name', key: 'masjidName', width: 30 },
-                { header: 'Place', key: 'place', width: 25 },
-                { header: 'Land Mark', key: 'landmark', width: 25 },
-                { header: 'Contact Name', key: 'contactName', width: 25 },
-                { header: 'Phone', key: 'phone', width: 18 },
-                { header: 'Designation', key: 'designation', width: 15 },
-                { header: 'Collection', key: 'collection', width: 15 },
-                { header: 'Remarks', key: 'remarks', width: 35 },
-                { header: 'Created By', key: 'createdBy', width: 20 },
-            ];
+            sheet.columns = activeCols;
 
             // Header Styling - Premium institutional blue
             const headerRow = sheet.getRow(1);
@@ -280,10 +300,8 @@ export default function FieldDataList() {
             });
         };
 
-        // --- Sheet 1: All Entries ---
-        const allSheet = setupSheet('All Entries');
-        fieldData.forEach(item => {
-            allSheet.addRow({
+        const formatRow = (item) => {
+            const fullObj = {
                 masjidName: item.masjidName,
                 place: item.place,
                 landmark: item.location?.address || '',
@@ -293,7 +311,16 @@ export default function FieldDataList() {
                 collection: item.yearsOfCollection || '',
                 remarks: item.remarks || '',
                 createdBy: item.createdBy?.displayName || item.createdBy?.username || 'Unknown'
-            });
+            };
+            const rowObj = {};
+            activeCols.forEach(c => { rowObj[c.key] = fullObj[c.key] ?? ''; });
+            return rowObj;
+        };
+
+        // --- Sheet 1: All Entries ---
+        const allSheet = setupSheet('All Entries');
+        fieldData.forEach(item => {
+            allSheet.addRow(formatRow(item));
         });
         addBorders(allSheet);
 
@@ -306,42 +333,39 @@ export default function FieldDataList() {
         });
 
         teamGroups.forEach((items, teamName) => {
-            // Sheet name constraints: max 31 chars, no special chars
             const safeName = teamName.substring(0, 31).replace(/[\[\]\*\?\/\\]/g, '') || 'Team';
             const teamSheet = setupSheet(safeName);
             items.forEach(item => {
-                teamSheet.addRow({
-                    masjidName: item.masjidName,
-                    place: item.place,
-                    landmark: item.location?.address || '',
-                    contactName: item.contactPerson?.name,
-                    phone: item.contactPerson?.phone,
-                    designation: item.contactPerson?.designation || '',
-                    collection: item.yearsOfCollection || '',
-                    remarks: item.remarks || '',
-                    createdBy: item.createdBy?.displayName || item.createdBy?.username || 'Unknown'
-                });
+                teamSheet.addRow(formatRow(item));
             });
             addBorders(teamSheet);
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), `field_data_${currentSeason?.name || 'export'}.xlsx`);
+
+        MySwal.fire({
+            title: 'Registry Exported!',
+            text: `Field survey registry with ${activeCols.length} fields has been exported successfully.`,
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
     };
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             {/* Header Section */}
-            <div className="flex flex-col gap-6 mb-10">
-                <div id="report-summary" className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
+            <div className="flex flex-col gap-6 mb-6 sm:mb-10">
+                <div id="report-summary" className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="p-2.5 sm:p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shrink-0">
                             <MapPin size={24} />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Field Data Operations</h1>
-                            <div className="flex items-center gap-2 mt-1">
-                                <p className="text-sm font-medium text-slate-500">
+                            <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">Field Data Operations</h1>
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5 sm:mt-1">
+                                <p className="text-xs sm:text-sm font-medium text-slate-500">
                                     Season {currentSeason ? currentSeason.name : '...'}
                                 </p>
                                 {currentSeason?.isActive ? (
@@ -353,24 +377,24 @@ export default function FieldDataList() {
                                         Archived
                                     </span>
                                 ) : null}
-                                <span className="text-sm font-bold text-[#1E5FA8]">• {filteredData.length} records</span>
+                                <span className="text-xs sm:text-sm font-bold text-[#1E5FA8]">• {filteredData.length} records</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto self-end md:self-center">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                         <button
                             onClick={() => navigate('/field-data/new')}
-                            className="btn-primary flex items-center gap-2 px-6"
+                            className="btn-primary flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold"
                         >
-                            <Plus size={18} /> <span className="font-bold">Add</span>
+                            <Plus size={18} /> <span>Add</span>
                         </button>
 
                         {isAdmin && (
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setViewType(viewType === 'grid' ? 'report' : 'grid')}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm border ${viewType === 'report'
+                                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm border ${viewType === 'report'
                                         ? 'bg-[#0F3B66] text-white border-[#0F3B66]'
                                         : 'bg-white text-[#1E5FA8] border-slate-200 hover:bg-[#E6F0FA]'
                                         }`}
@@ -380,8 +404,8 @@ export default function FieldDataList() {
                                     <span className="hidden lg:inline">{viewType === 'grid' ? "Registry Audit" : "Registry Grid"}</span>
                                 </button>
                                 <button
-                                    onClick={handleExport}
-                                    className="btn-secondary p-3 text-slate-600"
+                                    onClick={() => setShowExportModal(true)}
+                                    className="btn-secondary p-2.5 sm:p-3 text-slate-600"
                                     title="Export Registry"
                                 >
                                     <FileText size={18} />
@@ -391,13 +415,13 @@ export default function FieldDataList() {
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-10">
+                <div className="flex flex-col md:flex-row gap-3 sm:gap-4 p-3 sm:p-4 bg-white rounded-2xl border border-slate-100 shadow-sm mb-6 sm:mb-10">
                     <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
                             placeholder="Identify collections by institution or area identification..."
-                            className="input-field pl-12 h-12"
+                            className="input-field pl-12 h-11 sm:h-12 text-xs sm:text-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -660,7 +684,7 @@ export default function FieldDataList() {
                     </div>
 
                     <div id="report-table" className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto custom-scrollbar">
                             <table className="w-full text-left border-collapse min-w-[1000px]">
                                 <thead className="sticky top-0 z-10">
                                     <tr className="bg-[#0F3B66] text-white text-[10px] uppercase font-bold tracking-widest whitespace-nowrap">
@@ -720,8 +744,8 @@ export default function FieldDataList() {
                         </div>
 
                         {totalPages > 1 && (
-                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 bg-slate-50 border-t border-slate-100">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-4 sm:px-6 py-4 bg-slate-50 border-t border-slate-100">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center sm:text-left">
                                     Showing <span className="text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-slate-900">{Math.min(currentPage * itemsPerPage, sortedData.length)}</span> of <span className="text-slate-900">{sortedData.length}</span> entries
                                 </p>
 
@@ -773,16 +797,16 @@ export default function FieldDataList() {
 
             {/* Inactive Teams Modal */}
             {showInactiveModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl">
-                                    <UserX size={24} />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-2xl sm:rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 max-h-[90vh] flex flex-col">
+                        <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="p-2 sm:p-2.5 bg-amber-100 text-amber-600 rounded-xl shrink-0">
+                                    <UserX size={20} className="sm:w-6 sm:h-6" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Inactive Teams</h2>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{inactiveTeamsDetail.length} Pending Submissions</p>
+                                    <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Inactive Teams</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 sm:mt-1">{inactiveTeamsDetail.length} Pending Submissions</p>
                                 </div>
                             </div>
                             <button onClick={() => setShowInactiveModal(false)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors focus:outline-none">
@@ -790,16 +814,16 @@ export default function FieldDataList() {
                             </button>
                         </div>
 
-                        <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar bg-slate-50/30">
+                        <div className="p-4 sm:p-6 max-h-[60vh] overflow-y-auto custom-scrollbar bg-slate-50/30">
                             <div className="space-y-3">
                                 {inactiveTeamsDetail.map((team, idx) => (
-                                    <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-100 hover:shadow-md transition-all group">
-                                        <div className="h-12 w-12 shrink-0 rounded-2xl bg-slate-50 text-[#1E5FA8] border border-slate-100 flex items-center justify-center font-black uppercase text-sm group-hover:bg-[#1E5FA8] group-hover:text-white group-hover:border-[#1E5FA8] transition-colors shadow-sm">
+                                    <div key={idx} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-white hover:border-indigo-100 hover:shadow-md transition-all group">
+                                        <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl sm:rounded-2xl bg-slate-50 text-[#1E5FA8] border border-slate-100 flex items-center justify-center font-black uppercase text-xs sm:text-sm group-hover:bg-[#1E5FA8] group-hover:text-white group-hover:border-[#1E5FA8] transition-colors shadow-sm">
                                             {team.name.charAt(0)}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-[#0F3B66] group-hover:text-[#1E5FA8] transition-colors">{team.name}</h3>
-                                            <div className="flex items-center gap-1.5 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            <h3 className="font-bold text-sm sm:text-base text-[#0F3B66] group-hover:text-[#1E5FA8] transition-colors">{team.name}</h3>
+                                            <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                 <User size={12} className="text-[#1E5FA8]" /> Deployment Envoy
                                             </div>
                                         </div>
@@ -808,8 +832,8 @@ export default function FieldDataList() {
                             </div>
                         </div>
 
-                        <div className="p-4 bg-white border-t border-slate-100">
-                            <button onClick={() => setShowInactiveModal(false)} className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 transition-all focus:outline-none focus:ring-4 focus:ring-slate-100">
+                        <div className="p-3 sm:p-4 bg-white border-t border-slate-100">
+                            <button onClick={() => setShowInactiveModal(false)} className="w-full py-3 sm:py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 transition-all focus:outline-none focus:ring-4 focus:ring-slate-100 text-xs sm:text-sm">
                                 Close
                             </button>
                         </div>
@@ -830,6 +854,17 @@ export default function FieldDataList() {
                     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 }
             `}} />
+
+            {/* Field Selection Export Modal */}
+            <ExportModal
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                onExport={executeExport}
+                fields={fieldDataExportFields}
+                title="Export Data"
+                description="Choose which fields to include in the export. All fields are selected by default."
+                exportFormat="Excel"
+            />
         </div>
     );
 }

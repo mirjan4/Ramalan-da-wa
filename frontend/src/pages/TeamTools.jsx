@@ -3,20 +3,32 @@ import { teamService, seasonService } from '../services/api';
 import { Download, Upload, FileSpreadsheet, ArrowLeft, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MySwal } from '../utils/swal';
+import ExportModal from '../components/ExportModal';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 export default function TeamTools() {
     const [activeSeason, setActiveSeason] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
     const navigate = useNavigate();
+
+    const teamExportFields = [
+        { key: 'place', label: 'Place Name', category: 'General' },
+        { key: 'state', label: 'State', category: 'General' },
+        { key: 'advance', label: 'Advance Amount', category: 'Financials' },
+        { key: 'books', label: 'Assigned Books', category: 'Receipt Books' },
+        { key: 'name', label: 'Members Name', category: 'Field Officers' },
+        { key: 'class', label: 'Class', category: 'Field Officers' },
+        { key: 'phone', label: 'Phone', category: 'Field Officers' },
+    ];
 
     useEffect(() => {
         seasonService.getActive().then(res => setActiveSeason(res.data));
     }, []);
 
-    const handleExport = async () => {
-        if (!activeSeason) return;
+    const executeExport = async (selectedKeys) => {
+        if (!activeSeason || !selectedKeys || selectedKeys.length === 0) return;
         setLoading(true);
         try {
             const res = await teamService.getAll(activeSeason._id);
@@ -25,21 +37,27 @@ export default function TeamTools() {
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Teams Data');
 
-            // Define Columns
-            sheet.columns = [
-                { header: 'Place Name', key: 'place', width: 25 },
-                { header: 'State', key: 'state', width: 10 },
-                { header: 'Advance Amount', key: 'advance', width: 15 },
-                { header: 'Assigned Books', key: 'books', width: 20 },
-                { header: 'Members Name', key: 'name', width: 25 },
-                { header: 'Class', key: 'class', width: 10 },
-                { header: 'Phone', key: 'phone', width: 15 },
+            const allCols = [
+                { header: 'Place Name', key: 'place', width: 25, isMember: false },
+                { header: 'State', key: 'state', width: 10, isMember: false },
+                { header: 'Advance Amount', key: 'advance', width: 15, isMember: false },
+                { header: 'Assigned Books', key: 'books', width: 20, isMember: false },
+                { header: 'Members Name', key: 'name', width: 25, isMember: true },
+                { header: 'Class', key: 'class', width: 10, isMember: true },
+                { header: 'Phone', key: 'phone', width: 15, isMember: true },
             ];
+
+            const activeCols = allCols.filter(c => selectedKeys.includes(c.key));
+            sheet.columns = activeCols.map(c => ({
+                header: c.header,
+                key: c.key,
+                width: c.width
+            }));
 
             // Header Style
             const headerRow = sheet.getRow(1);
             headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
-            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5FA8' } }; // Markaz Primary Blue
+            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5FA8' } };
             headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
             headerRow.height = 30;
 
@@ -49,17 +67,19 @@ export default function TeamTools() {
                 const bookStr = team.receiptBooks ? team.receiptBooks.map(b => b.bookNumber).join(', ') : '';
 
                 if (team.members.length === 0) {
-                    // Handle empty members case
-                    sheet.addRow({
+                    const fullRow = {
                         place: team.placeName,
                         state: team.state,
                         advance: team.advanceAmount || 0,
                         books: bookStr,
                         name: '', class: '', phone: ''
-                    });
+                    };
+                    const rowObj = {};
+                    activeCols.forEach(c => { rowObj[c.key] = fullRow[c.key] ?? ''; });
+                    sheet.addRow(rowObj);
                 } else {
                     team.members.forEach((m, idx) => {
-                        const row = sheet.addRow({
+                        const fullRow = {
                             place: idx === 0 ? team.placeName : '',
                             state: idx === 0 ? team.state : '',
                             advance: idx === 0 ? (team.advanceAmount || 0) : '',
@@ -67,22 +87,29 @@ export default function TeamTools() {
                             name: m.name,
                             class: m.class,
                             phone: m.phone
-                        });
+                        };
+                        const rowObj = {};
+                        activeCols.forEach(c => { rowObj[c.key] = fullRow[c.key] ?? ''; });
+                        const row = sheet.addRow(rowObj);
 
-                        // Center align Place and State
-                        row.getCell('state').alignment = { vertical: 'middle', horizontal: 'center' };
-                        row.getCell('place').alignment = { vertical: 'middle', horizontal: 'left' };
-                        row.getCell('advance').alignment = { vertical: 'middle', horizontal: 'center' };
-                        row.getCell('books').alignment = { vertical: 'middle', horizontal: 'left' };
+                        activeCols.forEach(c => {
+                            if (c.key === 'state' || c.key === 'advance') {
+                                row.getCell(c.key).alignment = { vertical: 'middle', horizontal: 'center' };
+                            } else {
+                                row.getCell(c.key).alignment = { vertical: 'middle', horizontal: 'left' };
+                            }
+                        });
                     });
 
-                    // Merge Cells if multiple members (Cols A, B, C, D)
+                    // Merge Cells if multiple members for non-member columns
                     const endRow = sheet.lastRow.number;
                     if (endRow > startRow) {
-                        sheet.mergeCells(`A${startRow}:A${endRow}`);
-                        sheet.mergeCells(`B${startRow}:B${endRow}`);
-                        sheet.mergeCells(`C${startRow}:C${endRow}`);
-                        sheet.mergeCells(`D${startRow}:D${endRow}`);
+                        activeCols.forEach((colDef, colIdx) => {
+                            if (!colDef.isMember) {
+                                const colNum = colIdx + 1;
+                                sheet.mergeCells(startRow, colNum, endRow, colNum);
+                            }
+                        });
                     }
                 }
             });
@@ -103,7 +130,7 @@ export default function TeamTools() {
             saveAs(new Blob([buffer]), `Ramalan_Teams_${activeSeason.name.replace(/\s+/g, '_')}.xlsx`);
             MySwal.fire({
                 title: 'Exported!',
-                text: 'Teams data has been downloaded as an Excel file.',
+                text: `Teams data with ${activeCols.length} fields has been downloaded as an Excel file.`,
                 icon: 'success',
                 timer: 2000
             });
@@ -286,38 +313,38 @@ export default function TeamTools() {
     };
 
     return (
-        <div className="p-4 md:p-8 max-w-5xl mx-auto">
+        <div className="p-3 sm:p-6 lg:p-8 max-w-5xl mx-auto">
             <button
                 onClick={() => navigate('/teams')}
-                className="flex items-center gap-2 text-slate-400 hover:text-[#1E5FA8] font-bold text-xs mb-8 transition-colors group"
+                className="flex items-center gap-2 text-slate-400 hover:text-[#1E5FA8] font-bold text-xs mb-6 sm:mb-8 transition-colors group"
             >
                 <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> BACK TO MANAGEMENT
             </button>
 
-            <div className="flex items-center gap-4 mb-10">
-                <div className="p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg">
+            <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-10">
+                <div className="p-2.5 sm:p-3 bg-[#1E5FA8] text-white rounded-2xl shadow-lg shrink-0">
                     <FileSpreadsheet size={24} />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-[#0F3B66] tracking-tight">Data Management Tools</h1>
-                    <p className="text-sm font-medium text-slate-500 mt-1">High-volume deployment synchronization via Excel</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-[#0F3B66] tracking-tight">Data Management Tools</h1>
+                    <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1">High-volume deployment synchronization via Excel</p>
                 </div>
             </div>
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 {/* Export Section */}
-                <div className="glass-card p-8 border-l-4 border-l-[#1E5FA8] bg-white shadow-sm hover:shadow-md transition-shadow">
-                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-[#0F3B66]">
+                <div className="glass-card p-5 sm:p-8 border-l-4 border-l-[#1E5FA8] bg-white shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl">
+                    <h2 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-2 text-[#0F3B66]">
                         <Download className="text-[#1E5FA8]" size={20} /> Field Unit Export
                     </h2>
-                    <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 mb-6 sm:mb-8 leading-relaxed">
                         Generate a comprehensive audit-ready spreadsheet of all current deployment units and assigned members.
                     </p>
                     <button
-                        onClick={handleExport}
+                        onClick={() => setShowExportModal(true)}
                         disabled={loading || !activeSeason}
-                        className="btn-secondary w-full flex justify-center items-center gap-2 h-12"
+                        className="btn-secondary w-full flex justify-center items-center gap-2 h-11 sm:h-12 text-xs sm:text-sm font-bold"
                     >
                         {loading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
                         Download .xlsx Registry
@@ -325,8 +352,8 @@ export default function TeamTools() {
                 </div>
 
                 {/* Import Section */}
-                <div className="glass-card p-8 border-l-4 border-l-[#10B981] bg-white shadow-sm hover:shadow-md transition-shadow">
-                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-[#0F3B66]">
+                <div className="glass-card p-5 sm:p-8 border-l-4 border-l-[#10B981] bg-white shadow-sm hover:shadow-md transition-shadow rounded-2xl sm:rounded-3xl">
+                    <h2 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center gap-2 text-[#0F3B66]">
                         <Upload className="text-[#10B981]" size={18} /> Field Unit Import
                     </h2>
                     <p className="text-sm text-slate-500 mb-4 leading-relaxed">
@@ -357,6 +384,17 @@ export default function TeamTools() {
                     </div>
                 </div>
             </div>
+
+            {/* Field Selection Export Modal */}
+            <ExportModal
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                onExport={executeExport}
+                fields={teamExportFields}
+                title="Export Data"
+                description="Choose which fields to include in the export. All fields are selected by default."
+                exportFormat="Excel"
+            />
         </div>
     );
 }

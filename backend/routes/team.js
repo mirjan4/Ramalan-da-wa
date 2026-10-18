@@ -138,6 +138,38 @@ router.put('/:id/assign-books', async (req, res) => {
             }
         }
 
+        // Duplicate Protection: Prevent same book number from being added multiple times in the same team
+        const bookNums = receiptBooks.map(b => String(b.bookNumber || '').trim()).filter(Boolean);
+        const internalDupes = bookNums.filter((num, idx) => bookNums.indexOf(num) !== idx);
+        if (internalDupes.length > 0) {
+            return res.status(400).json({
+                message: `Duplicate book numbers detected: Book #${[...new Set(internalDupes)].join(', #')}. Each receipt book must have a unique identifier.`
+            });
+        }
+
+        // Cross-Team Protection: Prevent assigning book numbers already assigned to other teams in this season
+        const conflictingTeams = await Team.find({
+            season: team.season,
+            _id: { $ne: team._id },
+            'receiptBooks.bookNumber': { $in: bookNums }
+        }).select('placeName receiptBooks');
+
+        if (conflictingTeams.length > 0) {
+            const conflicts = [];
+            conflictingTeams.forEach(ct => {
+                ct.receiptBooks.forEach(b => {
+                    if (bookNums.includes(String(b.bookNumber))) {
+                        conflicts.push(`Book #${b.bookNumber} (assigned to ${ct.placeName})`);
+                    }
+                });
+            });
+            if (conflicts.length > 0) {
+                return res.status(400).json({
+                    message: `Conflict detected: ${conflicts.join(', ')}. A book cannot be assigned to multiple teams in the same season.`
+                });
+            }
+        }
+
         team.receiptBooks = receiptBooks.map(book => {
             const bNum = parseInt(book.bookNumber);
             if (!isNaN(bNum) && bNum > 0) {

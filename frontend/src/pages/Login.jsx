@@ -33,17 +33,17 @@ export default function Login({ setUser }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#E6F0FA]/30 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#E6F0FA]/30 p-3 sm:p-4">
       <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
-        <div className="text-center mb-10">
-          <div className="inline-flex p-4 rounded-[2rem] bg-[#1E5FA8] text-white shadow-2xl shadow-blue-900/20 mb-6 -rotate-2 transform">
-            <LogIn size={32} />
+        <div className="text-center mb-6 sm:mb-10">
+          <div className="inline-flex p-3 sm:p-4 rounded-2xl sm:rounded-[2rem] bg-[#1E5FA8] text-white shadow-2xl shadow-blue-900/20 mb-4 sm:mb-6 -rotate-2 transform">
+            <LogIn size={28} className="sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-[#0F3B66] tracking-tight">Login Page</h1>
-          <p className="text-slate-500 mt-2 font-medium">Ramalan Da'wah {new Date().getFullYear()}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#0F3B66] tracking-tight">Login Page</h1>
+          <p className="text-slate-500 mt-1 sm:mt-2 text-xs sm:text-sm font-medium">Ramalan Da'wah {new Date().getFullYear()}</p>
         </div>
 
-        <div className="glass-card p-10 border-none bg-white shadow-2xl">
+        <div className="glass-card p-6 sm:p-10 border-none bg-white shadow-2xl rounded-2xl sm:rounded-3xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Username</label>
